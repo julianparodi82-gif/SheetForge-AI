@@ -29,6 +29,7 @@
     };
     google.script.run.withSuccessHandler(function(result) {
       setStatus(result.message || 'Configuración guardada.', false);
+      loadSettings();
       button.disabled = false;
     }).withFailureHandler(function(error) {
       setStatus('Error al guardar: ' + (error && error.message ? error.message : 'desconocido'), true);
