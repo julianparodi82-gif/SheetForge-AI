@@ -1,0 +1,120 @@
+<script>
+  const state = {
+    mode: 'IDLE',
+    plan: null,
+    summary: ''
+  };
+
+  function setStatus(message, isError) {
+    const el = document.getElementById('status');
+    el.textContent = message || '';
+    el.className = isError ? 'status error' : 'status ok';
+  }
+
+  function setMode(mode) {
+    state.mode = mode;
+    const analyzeBtn = document.getElementById('btnAnalyzeEdit');
+    const applyBtn = document.getElementById('btnApply');
+    if (mode === 'IDLE') {
+      analyzeBtn.textContent = 'Analizar';
+      applyBtn.disabled = true;
+    } else {
+      analyzeBtn.textContent = 'Editar';
+      applyBtn.disabled = document.getElementById('dryRun').checked;
+    }
+  }
+
+  function renderPlan(plan, summary) {
+    state.plan = plan;
+    state.summary = summary || '';
+    document.getElementById('planJson').textContent = JSON.stringify(plan, null, 2);
+    document.getElementById('summary').textContent = summary || '';
+  }
+
+  function refreshLogs() {
+    google.script.run.withSuccessHandler(function(logs) {
+      document.getElementById('logs').textContent = logs.join('\n');
+    }).getLastLogs(10);
+  }
+
+  document.getElementById('btnAnalyzeEdit').addEventListener('click', function() {
+    const prompt = document.getElementById('promptInput').value.trim();
+    if (!prompt) {
+      setStatus('Prompt vacío.', true);
+      return;
+    }
+    const flags = {
+      dryRun: document.getElementById('dryRun').checked,
+      safeMode: document.getElementById('safeMode').checked
+    };
+    setStatus('Procesando...', false);
+    if (state.mode === 'IDLE') {
+      google.script.run.withSuccessHandler(function(result) {
+        if (result.error) {
+          setStatus(result.error, true);
+          return;
+        }
+        renderPlan(result.plan, result.summary);
+        setMode('PLANNED');
+        setStatus('Plan generado.', false);
+        refreshLogs();
+      }).buildPlan(prompt, flags);
+    } else {
+      google.script.run.withSuccessHandler(function(result) {
+        if (result.error) {
+          setStatus(result.error, true);
+          return;
+        }
+        renderPlan(result.plan, result.summary);
+        setMode('PLANNED');
+        setStatus('Plan actualizado.', false);
+        refreshLogs();
+      }).editPlan(prompt, state.plan, flags);
+    }
+  });
+
+  document.getElementById('btnApply').addEventListener('click', function() {
+    if (!state.plan) {
+      setStatus('Sin plan.', true);
+      return;
+    }
+    const flags = {
+      dryRun: document.getElementById('dryRun').checked,
+      safeMode: document.getElementById('safeMode').checked
+    };
+    setStatus('Aplicando...', false);
+    google.script.run.withSuccessHandler(function(result) {
+      if (result.error) {
+        setStatus(result.error, true);
+        return;
+      }
+      setMode('IDLE');
+      renderPlan(null, '');
+      document.getElementById('promptInput').value = '';
+      setStatus(result.message, false);
+      refreshLogs();
+    }).applyPlan(state.plan, flags);
+  });
+
+  document.getElementById('dryRun').addEventListener('change', function() {
+    if (state.mode === 'PLANNED') {
+      document.getElementById('btnApply').disabled = this.checked;
+    }
+  });
+
+  document.getElementById('btnScan').addEventListener('click', function() {
+    const mode = document.getElementById('scanMode').value;
+    setStatus('Escaneando...', false);
+    google.script.run.withSuccessHandler(function(result) {
+      if (result.error) {
+        setStatus(result.error, true);
+        return;
+      }
+      setStatus(result.message, false);
+      refreshLogs();
+    }).scanProjectAndUpdateContext({ mode });
+  });
+
+  setMode('IDLE');
+  refreshLogs();
+</script>

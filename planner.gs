@@ -1,0 +1,152 @@
+function buildPlan(prompt, flags) {
+  ensureSpecialSheets_();
+  var trimmed = (prompt || '').trim();
+  if (!trimmed) return { error: 'Prompt vacío.' };
+  if (trimmed.indexOf('/') === 0) {
+    var plan = commandToPlan_(trimmed, flags);
+    if (plan.error) return plan;
+    var summary = buildSummary_(plan);
+    return { plan: plan, summary: summary };
+  }
+  var endpoint = PropertiesService.getDocumentProperties().getProperty('AI_ENDPOINT');
+  if (!endpoint) {
+    return { error: 'IA no configurada. Usa comandos "/" o configura AI_ENDPOINT.' };
+  }
+  return { error: 'IA no configurada en este entorno.' };
+}
+
+function editPlan(editPrompt, currentPlan, flags) {
+  ensureSpecialSheets_();
+  var trimmed = (editPrompt || '').trim();
+  if (!currentPlan) return { error: 'Sin plan actual.' };
+  if (trimmed.indexOf('/') === 0) {
+    var updated = editPlanWithCommand_(trimmed, currentPlan);
+    if (updated.error) return updated;
+    var summary = buildSummary_(updated);
+    return { plan: updated, summary: summary };
+  }
+  var endpoint = PropertiesService.getDocumentProperties().getProperty('AI_ENDPOINT');
+  if (!endpoint) {
+    return { error: 'IA no configurada. Usa comandos "/" para editar.' };
+  }
+  return { error: 'IA no configurada en este entorno.' };
+}
+
+function commandToPlan_(prompt, flags) {
+  var meta = {
+    version: '1.0',
+    dryRun: !!(flags && flags.dryRun),
+    safeMode: !!(flags && flags.safeMode),
+    notes: ''
+  };
+  var action = parseCommand_(prompt);
+  if (action.error) return action;
+  return { meta: meta, actions: [action] };
+}
+
+function editPlanWithCommand_(prompt, plan) {
+  var parts = prompt.split(' ');
+  var cmd = parts[0];
+  if (cmd === '/replaceAction') {
+    var index = extractIndex_(prompt);
+    var actionJson = extractJson_(prompt);
+    if (index < 0 || !actionJson) return { error: 'Uso: /replaceAction index=2 {..}' };
+    plan.actions[index] = actionJson;
+    return plan;
+  }
+  if (cmd === '/removeAction') {
+    var idx = extractIndex_(prompt);
+    if (idx < 0) return { error: 'Uso: /removeAction index=1' };
+    plan.actions.splice(idx, 1);
+    return plan;
+  }
+  if (cmd === '/addAction') {
+    var addJson = extractJson_(prompt);
+    if (!addJson) return { error: 'Uso: /addAction {..}' };
+    plan.actions.push(addJson);
+    return plan;
+  }
+  return { error: 'Comando de edición no soportado.' };
+}
+
+function parseCommand_(prompt) {
+  var cmd = prompt.split(' ')[0];
+  if (cmd === '/color') {
+    var match = prompt.match(/\/color\s+"([^"]+)"\s+([^\s]+)\s+(#[0-9a-fA-F]{6})/);
+    if (!match) return { error: 'Uso: /color "HOJA" A1:B2 #RRGGBB' };
+    return { op: 'setBackground', sheetName: match[1], rangeA1: match[2], color: match[3] };
+  }
+  if (cmd === '/formula') {
+    var fmatch = prompt.match(/\/formula\s+"([^"]+)"\s+([^\s]+)\s+(.+)/);
+    if (!fmatch) return { error: 'Uso: /formula "HOJA" A1 =FORMULA' };
+    return { op: 'setFormula', sheetName: fmatch[1], rangeA1: fmatch[2], formula: fmatch[3] };
+  }
+  if (cmd === '/move') {
+    var mmatch = prompt.match(/\/move\s+"([^"]+)"\s+([^\s]+)\s+([^\s]+)/);
+    if (!mmatch) return { error: 'Uso: /move "HOJA" A1:B2 C1:D2' };
+    return { op: 'moveRange', sheetName: mmatch[1], sourceA1: mmatch[2], targetA1: mmatch[3] };
+  }
+  if (cmd === '/renamefile') {
+    var nmatch = prompt.match(/\/renamefile\s+(.+)/);
+    if (!nmatch) return { error: 'Uso: /renamefile NuevoNombre' };
+    return { op: 'renameFile', name: nmatch[1].trim() };
+  }
+  if (cmd === '/exportpdf') {
+    var ematch = prompt.match(/\/exportpdf\s+"([^"]+)"\s+filename=(.+)/);
+    if (!ematch) return { error: 'Uso: /exportpdf "HOJA" filename=archivo.pdf' };
+    return { op: 'exportPdf', sheetName: ematch[1], filename: ematch[2].trim() };
+  }
+  if (cmd === '/insertimage') {
+    var imatch = prompt.match(/\/insertimage\s+sheet="([^"]+)"\s+cell=([^\s]+)\s+fileId=([^\s]+)\s+width=(\d+)\s+height=(\d+)/);
+    if (!imatch) return { error: 'Uso: /insertimage sheet="HOJA" cell=A1 fileId=ID width=200 height=80' };
+    return { op: 'insertImageFromDrive', sheetName: imatch[1], cell: imatch[2], fileId: imatch[3], width: Number(imatch[4]), height: Number(imatch[5]) };
+  }
+  if (cmd === '/createSheet') {
+    var cmatch = prompt.match(/\/createSheet\s+"([^"]+)"/);
+    if (!cmatch) return { error: 'Uso: /createSheet "Nombre"' };
+    return { op: 'createSheet', sheetName: cmatch[1] };
+  }
+  if (cmd === '/deleteSheet') {
+    var dmatch = prompt.match(/\/deleteSheet\s+"([^"]+)"/);
+    if (!dmatch) return { error: 'Uso: /deleteSheet "Nombre"' };
+    return { op: 'deleteSheet', sheetName: dmatch[1] };
+  }
+  return { error: 'Comando no reconocido.' };
+}
+
+function extractIndex_(prompt) {
+  var match = prompt.match(/index=(\d+)/);
+  if (!match) return -1;
+  return parseInt(match[1], 10);
+}
+
+function extractJson_(prompt) {
+  var match = prompt.match(/\{[\s\S]+\}/);
+  if (!match) return null;
+  try {
+    return JSON.parse(match[0]);
+  } catch (e) {
+    return null;
+  }
+}
+
+function buildSummary_(plan) {
+  var lines = [];
+  lines.push('Objetivo: aplicar ' + plan.actions.length + ' acción(es).');
+  lines.push('Acciones:');
+  plan.actions.forEach(function (action, index) {
+    lines.push((index + 1) + '. ' + action.op);
+  });
+  lines.push('Ubicación exacta:');
+  plan.actions.forEach(function (action) {
+    if (action.sheetName) {
+      var range = action.rangeA1 || action.sourceA1 || action.targetA1 || action.cell || 'desconocido';
+      lines.push('- ' + action.sheetName + ' ' + range);
+    }
+  });
+  lines.push('Impacto:');
+  lines.push(plan.actions.map(function (a) { return a.op; }).join(', '));
+  lines.push('Riesgo:');
+  lines.push(plan.meta.safeMode ? 'safeMode activo' : 'safeMode desactivado');
+  return lines.join('\n');
+}

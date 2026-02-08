@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body { font-family: Arial, sans-serif; color: #0f2d1f; background: #f1f8e9; }
+      .container { padding: 16px; }
+      h3 { margin: 0 0 12px; color: #1b5e20; }
+      label { display: block; margin: 10px 0 6px; font-size: 12px; }
+      input, select { width: 100%; padding: 8px; border: 1px solid #a5d6a7; border-radius: 6px; }
+      button { margin-top: 14px; padding: 8px 12px; border: none; border-radius: 6px; background: #2e7d32; color: #fff; cursor: pointer; }
+      .status { margin-top: 10px; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h3>Configuración</h3>
+      <label for="language">Idioma</label>
+      <select id="language">
+        <option value="es">Español</option>
+        <option value="en">English</option>
+      </select>
+      <label for="aiEndpoint">AI Endpoint</label>
+      <input id="aiEndpoint" type="text" placeholder="https://..." />
+      <label for="aiApiKey">API Key (ChatGPT)</label>
+      <input id="aiApiKey" type="password" placeholder="sk-..." />
+      <button id="btnSave">Guardar</button>
+      <div id="status" class="status"></div>
+    </div>
+    <?!= include('config.js'); ?>
+  </body>
+</html>

@@ -1,0 +1,29 @@
+<script>
+  function setStatus(message, isError) {
+    const el = document.getElementById('status');
+    el.textContent = message || '';
+    el.style.color = isError ? '#b71c1c' : '#1b5e20';
+  }
+
+  function loadSettings() {
+    google.script.run.withSuccessHandler(function(settings) {
+      const lang = (settings.language || '').toLowerCase();
+      document.getElementById('language').value = lang.startsWith('en') ? 'en' : 'es';
+      document.getElementById('aiEndpoint').value = settings.aiEndpoint || '';
+      document.getElementById('aiApiKey').value = settings.aiApiKey || '';
+    }).getSettings_();
+  }
+
+  document.getElementById('btnSave').addEventListener('click', function() {
+    const payload = {
+      language: document.getElementById('language').value,
+      aiEndpoint: document.getElementById('aiEndpoint').value.trim(),
+      aiApiKey: document.getElementById('aiApiKey').value.trim()
+    };
+    google.script.run.withSuccessHandler(function(result) {
+      setStatus(result.message, false);
+    }).saveSettings_(payload);
+  });
+
+  loadSettings();
+</script>
