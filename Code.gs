@@ -56,7 +56,7 @@ function getSettings_() {
   return {
     language: props.getProperty('APP_LANGUAGE') || Session.getActiveUserLocale(),
     aiEndpoint: props.getProperty('AI_ENDPOINT') || '',
-    aiApiKey: userProps.getProperty('AI_API_KEY') || ''
+    aiApiKey: userProps.getProperty('AI_API_KEY') || props.getProperty('AI_API_KEY') || ''
   };
 }
 
@@ -75,6 +75,7 @@ function saveSettings_(settings) {
   if (language) props.setProperty('APP_LANGUAGE', language);
   props.setProperty('AI_ENDPOINT', endpoint);
   userProps.setProperty('AI_API_KEY', apiKey);
+  props.setProperty('AI_API_KEY', apiKey);
   return {
     ok: true,
     message: 'Clave guardada correctamente.',
