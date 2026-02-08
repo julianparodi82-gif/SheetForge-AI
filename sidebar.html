@@ -14,8 +14,10 @@
       .row { display: flex; gap: 12px; margin: 10px 0; align-items: center; flex-wrap: wrap; }
       .buttons { justify-content: center; gap: 18px; }
       .panel { border: 1px solid #c8e6c9; padding: 8px; border-radius: 10px; margin: 10px 0; background: #ffffff; }
-      .panel summary { cursor: pointer; font-weight: 600; color: #1b5e20; list-style: none; }
+      .panel summary { cursor: pointer; font-weight: 600; color: #1b5e20; list-style: none; display: flex; justify-content: space-between; align-items: center; }
       .panel summary::-webkit-details-marker { display: none; }
+      .panel summary::after { content: '▸'; font-size: 14px; color: #2e7d32; transition: transform 0.2s ease; }
+      .panel[open] summary::after { transform: rotate(90deg); }
       .panel-content { padding-top: 8px; }
       .status.ok { color: #1b5e20; }
       .status.error { color: #b71c1c; }

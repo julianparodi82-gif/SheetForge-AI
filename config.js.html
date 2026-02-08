@@ -20,13 +20,19 @@
   });
 
   document.getElementById('btnSave').addEventListener('click', function() {
+    const button = this;
+    button.disabled = true;
     const payload = {
       language: document.getElementById('language').value,
       aiEndpoint: document.getElementById('aiEndpoint').value.trim(),
       aiApiKey: document.getElementById('aiApiKey').value.trim()
     };
     google.script.run.withSuccessHandler(function(result) {
-      setStatus(result.message, false);
+      setStatus(result.message || 'Configuración guardada.', false);
+      button.disabled = false;
+    }).withFailureHandler(function(error) {
+      setStatus('Error al guardar: ' + (error && error.message ? error.message : 'desconocido'), true);
+      button.disabled = false;
     }).saveSettings_(payload);
   });
 
