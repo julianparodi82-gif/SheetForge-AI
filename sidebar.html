@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body { font-family: Arial, sans-serif; color: #0f2d1f; }
+      .container { padding: 12px; }
+      h2 { color: #1b5e20; margin: 0 0 12px; }
+      textarea { width: 100%; min-height: 110px; padding: 8px; border: 1px solid #a5d6a7; border-radius: 6px; }
+      button { padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; }
+      button.primary { background: #2e7d32; color: #fff; }
+      button.secondary { background: #c8e6c9; color: #1b5e20; }
+      button:disabled { background: #e0e0e0; color: #888; cursor: not-allowed; }
+      .row { display: flex; gap: 8px; margin: 8px 0; }
+      .panel { border: 1px solid #c8e6c9; padding: 8px; border-radius: 6px; margin: 8px 0; background: #f1f8e9; }
+      .status.ok { color: #1b5e20; }
+      .status.error { color: #b71c1c; }
+      label { font-size: 12px; }
+      select, input[type=checkbox] { margin-right: 4px; }
+      pre { white-space: pre-wrap; word-break: break-word; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>SheetForge AI — AI Operator</h2>
+      <textarea id="promptInput" placeholder="Escribe instrucciones o comandos..." ></textarea>
+      <div class="row">
+        <button id="btnAnalyzeEdit" class="primary">Analizar</button>
+        <button id="btnApply" class="secondary" disabled>Aplicar</button>
+      </div>
+      <div class="row">
+        <label><input type="checkbox" id="dryRun" checked> Dry Run</label>
+        <label><input type="checkbox" id="safeMode" checked> Safe Mode</label>
+        <label>Scan mode
+          <select id="scanMode">
+            <option value="quick">quick</option>
+            <option value="full">full</option>
+          </select>
+        </label>
+        <button id="btnScan" class="secondary">Escanear proyecto</button>
+      </div>
+      <div class="panel">
+        <strong>Resumen profesional</strong>
+        <pre id="summary"></pre>
+      </div>
+      <div class="panel">
+        <strong>Plan JSON</strong>
+        <pre id="planJson"></pre>
+      </div>
+      <div class="panel">
+        <strong>Status</strong>
+        <div id="status" class="status"></div>
+      </div>
+      <div class="panel">
+        <strong>Últimos logs</strong>
+        <pre id="logs"></pre>
+      </div>
+    </div>
+    <?!= include('ui.js'); ?>
+  </body>
+</html>
