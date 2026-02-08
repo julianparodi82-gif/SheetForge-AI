@@ -5,7 +5,7 @@ var ALLOWED_OPS = [
   'setHorizontalAlignment', 'setVerticalAlignment', 'setWrap', 'setBorder', 'setBorders',
   'setTextRotation',
   'setNumberFormat', 'clearContent', 'copyPasteValues', 'copyPasteFormats', 'copyPasteAll',
-  'copyPasteFormulas', 'moveRange', 'createPivotTable',
+  'copyPasteFormulas', 'copyRange', 'moveRange', 'createPivotTable',
   'insertRows', 'deleteRows', 'insertColumns', 'deleteColumns', 'hideRows', 'showRows',
   'hideColumns', 'showColumns', 'renameSheet', 'createSheet', 'deleteSheet', 'hideSheet',
   'showSheet', 'setColumnWidth', 'setRowHeight', 'renameFile', 'exportPdf',
@@ -120,6 +120,11 @@ function validateAction_(action, flags) {
       return 'Rango inválido: falta sourceA1/targetA1';
     }
   }
+  if (action.op === 'copyRange') {
+    if (!action.sourceA1 || !action.targetA1) {
+      return 'Rango inválido: falta sourceA1/targetA1';
+    }
+  }
   if (action.op === 'copyPasteFormats' || action.op === 'copyPasteAll' || action.op === 'copyPasteFormulas') {
     if (!action.sourceA1 || !action.targetA1) {
       return 'Rango inválido: falta sourceA1/targetA1';
@@ -170,7 +175,7 @@ function requiresSheet_(op) {
     'setHorizontalAlignment', 'setVerticalAlignment', 'setWrap', 'setBorder', 'setBorders',
     'setTextRotation',
     'setNumberFormat', 'clearContent', 'copyPasteValues', 'copyPasteFormats', 'copyPasteAll',
-    'copyPasteFormulas', 'moveRange', 'createPivotTable',
+    'copyPasteFormulas', 'copyRange', 'moveRange', 'createPivotTable',
     'insertRows', 'deleteRows', 'insertColumns', 'deleteColumns', 'hideRows', 'showRows',
     'hideColumns', 'showColumns', 'renameSheet', 'createSheet', 'deleteSheet', 'hideSheet',
     'showSheet', 'setColumnWidth', 'setRowHeight', 'exportPdf', 'insertImageFromDrive',

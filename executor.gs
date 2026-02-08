@@ -153,6 +153,12 @@ function executeAction_(action) {
     srcAll.copyTo(destAll);
     return;
   }
+  if (action.op === 'copyRange') {
+    var srcRange = ss.getSheetByName(action.sheetName).getRange(action.sourceA1);
+    var destRange = ss.getSheetByName(action.sheetName).getRange(action.targetA1);
+    srcRange.copyTo(destRange);
+    return;
+  }
   if (action.op === 'createPivotTable') {
     var pivotSheet = ss.getSheetByName(action.sheetName);
     var sourceRange = pivotSheet.getRange(action.sourceA1);
