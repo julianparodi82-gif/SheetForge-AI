@@ -89,6 +89,10 @@ function executeAction_(action) {
     ss.getSheetByName(action.sheetName).getRange(action.rangeA1).setWrap(!!action.wrap);
     return;
   }
+  if (action.op === 'setTextRotation') {
+    ss.getSheetByName(action.sheetName).getRange(action.rangeA1).setTextRotation(action.rotation);
+    return;
+  }
   if (action.op === 'setBorder' || action.op === 'setBorders') {
     var range = ss.getSheetByName(action.sheetName).getRange(action.rangeA1);
     var border = action.border;
@@ -143,6 +147,34 @@ function executeAction_(action) {
     var srcAll = ss.getSheetByName(action.sheetName).getRange(action.sourceA1);
     var destAll = ss.getSheetByName(action.sheetName).getRange(action.targetA1);
     srcAll.copyTo(destAll);
+    return;
+  }
+  if (action.op === 'createPivotTable') {
+    var pivotSheet = ss.getSheetByName(action.sheetName);
+    var sourceRange = pivotSheet.getRange(action.sourceA1);
+    var targetRange = pivotSheet.getRange(action.targetA1);
+    var pivot = sourceRange.createPivotTable(targetRange);
+    if (Array.isArray(action.rowGroups)) {
+      action.rowGroups.forEach(function(group) {
+        if (group && group.sourceColumn) {
+          pivot.addRowGroup(group.sourceColumn);
+        }
+      });
+    }
+    if (Array.isArray(action.columnGroups)) {
+      action.columnGroups.forEach(function(group) {
+        if (group && group.sourceColumn) {
+          pivot.addColumnGroup(group.sourceColumn);
+        }
+      });
+    }
+    if (Array.isArray(action.values)) {
+      action.values.forEach(function(value) {
+        if (value && value.sourceColumn && value.summarizeFunction) {
+          pivot.addPivotValue(value.sourceColumn, value.summarizeFunction);
+        }
+      });
+    }
     return;
   }
   if (action.op === 'moveRange') {

@@ -2,8 +2,9 @@ var ALLOWED_OPS = [
   'setValue', 'setValues', 'setFormula', 'setFormulas', 'setBackground', 'setBackgrounds',
   'setFontColor', 'setFontWeight', 'setFontSize', 'setFontFamily', 'setFontStyle', 'setFontLine',
   'setHorizontalAlignment', 'setVerticalAlignment', 'setWrap', 'setBorder', 'setBorders',
+  'setTextRotation',
   'setNumberFormat', 'clearContent', 'copyPasteValues', 'copyPasteFormats', 'copyPasteAll',
-  'copyPasteFormulas', 'moveRange',
+  'copyPasteFormulas', 'moveRange', 'createPivotTable',
   'insertRows', 'deleteRows', 'insertColumns', 'deleteColumns', 'hideRows', 'showRows',
   'hideColumns', 'showColumns', 'renameSheet', 'createSheet', 'deleteSheet', 'hideSheet',
   'showSheet', 'setColumnWidth', 'setRowHeight', 'renameFile', 'exportPdf',
@@ -85,8 +86,18 @@ function validateAction_(action, flags) {
   if (action.op === 'setBackgrounds' && !Array.isArray(action.colors)) {
     return 'Color inválido: falta colors';
   }
-  if ((action.op === 'setBorder' || action.op === 'setBorders') && action.border === undefined) {
-    return 'Borde inválido: falta border';
+  if (action.op === 'setTextRotation' && action.rotation === undefined) {
+    return 'Formato inválido: falta rotation';
+  }
+  if (action.op === 'createPivotTable') {
+    if (!action.sourceA1 || !action.targetA1) {
+      return 'Rango inválido: falta sourceA1/targetA1';
+    }
+  }
+  if (action.op === 'setBorder' || action.op === 'setBorders') {
+    if (action.border === undefined) {
+      action.border = true;
+    }
   }
   if (action.op === 'setFontFamily' && !action.family) {
     return 'Formato inválido: falta family';
@@ -149,8 +160,9 @@ function requiresSheet_(op) {
     'setValue', 'setValues', 'setFormula', 'setFormulas', 'setBackground', 'setBackgrounds',
     'setFontColor', 'setFontWeight', 'setFontSize', 'setFontFamily', 'setFontStyle', 'setFontLine',
     'setHorizontalAlignment', 'setVerticalAlignment', 'setWrap', 'setBorder', 'setBorders',
+    'setTextRotation',
     'setNumberFormat', 'clearContent', 'copyPasteValues', 'copyPasteFormats', 'copyPasteAll',
-    'copyPasteFormulas', 'moveRange',
+    'copyPasteFormulas', 'moveRange', 'createPivotTable',
     'insertRows', 'deleteRows', 'insertColumns', 'deleteColumns', 'hideRows', 'showRows',
     'hideColumns', 'showColumns', 'renameSheet', 'createSheet', 'deleteSheet', 'hideSheet',
     'showSheet', 'setColumnWidth', 'setRowHeight', 'exportPdf', 'insertImageFromDrive',
@@ -163,6 +175,7 @@ function requiresRange_(op) {
     'setValue', 'setValues', 'setFormula', 'setFormulas', 'setBackground', 'setBackgrounds',
     'setFontColor', 'setFontWeight', 'setFontSize', 'setFontFamily', 'setFontStyle', 'setFontLine',
     'setHorizontalAlignment', 'setVerticalAlignment', 'setWrap', 'setBorder', 'setBorders',
+    'setTextRotation',
     'setNumberFormat', 'clearContent', 'setImageFormula'
   ].indexOf(op) !== -1;
 }
