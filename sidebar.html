@@ -24,6 +24,7 @@
       label { font-size: 12px; font-weight: 600; color: #2e5a3a; }
       select, input[type=checkbox] { margin-right: 6px; }
       pre { white-space: pre-wrap; word-break: break-word; margin: 0; }
+      .scrollable { max-height: 220px; overflow: auto; }
       .field-group { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
     </style>
   </head>
@@ -49,13 +50,13 @@
       <details class="panel" open>
         <summary>Resumen profesional</summary>
         <div class="panel-content">
-          <pre id="summary"></pre>
+          <pre id="summary" class="scrollable"></pre>
         </div>
       </details>
       <details class="panel" open>
         <summary>Plan JSON</summary>
         <div class="panel-content">
-          <pre id="planJson"></pre>
+          <pre id="planJson" class="scrollable"></pre>
         </div>
       </details>
       <details class="panel" open>
@@ -67,7 +68,7 @@
       <details class="panel" open>
         <summary>Últimos registros</summary>
         <div class="panel-content">
-          <pre id="logs"></pre>
+          <pre id="logs" class="scrollable"></pre>
         </div>
       </details>
     </div>

@@ -9,13 +9,10 @@ function validatePlan_(plan, flags) {
   if (!plan || !plan.meta || !Array.isArray(plan.actions)) {
     return 'Plan inválido.';
   }
-  if (ALLOWED_OPS.indexOf(plan.actions[0] && plan.actions[0].op) === -1 && plan.actions.length > 0) {
-    return 'Operación no permitida.';
-  }
   for (var i = 0; i < plan.actions.length; i++) {
     var action = plan.actions[i];
     if (!action.op || ALLOWED_OPS.indexOf(action.op) === -1) {
-      return 'Operación no permitida: ' + action.op;
+      return 'Operación no permitida: ' + action.op + ' (no está en whitelist)';
     }
     var v = validateAction_(action, flags);
     if (v) return v;
@@ -26,14 +23,39 @@ function validatePlan_(plan, flags) {
 function validateAction_(action, flags) {
   if (flags && flags.safeMode) {
     if (action.op === 'deleteSheet' || action.op === 'renameFile') {
-      return 'Safe Mode bloquea ' + action.op;
+      return 'Operación no permitida: ' + action.op + ' (bloqueada por Safe Mode)';
     }
     if (action.op === 'deleteRows' && action.numRows && action.numRows > 50) {
-      return 'Safe Mode bloquea deleteRows masivo';
+      return 'Operación no permitida: deleteRows (bloqueada por Safe Mode)';
     }
     if (action.op === 'clearContent' && action.rangeA1 && rangeIsLarge_(action.rangeA1)) {
-      return 'Safe Mode bloquea clearContent masivo';
+      return 'Operación no permitida: clearContent (bloqueada por Safe Mode)';
     }
+  }
+  if (requiresSheet_(action.op)) {
+    if (!action.sheetName) {
+      return 'Operación no permitida: falta sheetName';
+    }
+    var sheet = SpreadsheetApp.getActive().getSheetByName(action.sheetName);
+    if (!sheet) {
+      return 'Hoja no encontrada: ' + action.sheetName;
+    }
+  }
+  if (requiresRange_(action.op) && !action.rangeA1) {
+    return 'Rango inválido: falta rangeA1';
+  }
+  if (action.op === 'copyPasteValues') {
+    if (!action.sourceA1 || !action.targetA1) {
+      return 'Rango inválido: falta sourceA1/targetA1';
+    }
+  }
+  if (action.op === 'moveRange') {
+    if (!action.sourceA1 || !action.targetA1) {
+      return 'Rango inválido: falta sourceA1/targetA1';
+    }
+  }
+  if (action.op === 'insertImageFromDrive' && !action.cell) {
+    return 'Rango inválido: falta cell';
   }
   if (action.rangeA1 && !isValidA1_(action.rangeA1)) {
     return 'Rango inválido: ' + action.rangeA1;
@@ -42,6 +64,22 @@ function validateAction_(action, flags) {
     return 'Color inválido: ' + action.color;
   }
   return null;
+}
+
+function requiresSheet_(op) {
+  return [
+    'setValue', 'setFormula', 'setFormulas', 'setBackground', 'setNumberFormat', 'clearContent',
+    'copyPasteValues', 'moveRange', 'insertRows', 'deleteRows', 'renameSheet', 'createSheet',
+    'deleteSheet', 'setColumnWidth', 'setRowHeight', 'exportPdf', 'insertImageFromDrive',
+    'setImageFormula'
+  ].indexOf(op) !== -1;
+}
+
+function requiresRange_(op) {
+  return [
+    'setValue', 'setFormula', 'setFormulas', 'setBackground', 'setNumberFormat', 'clearContent',
+    'setImageFormula'
+  ].indexOf(op) !== -1;
 }
 
 function isValidA1_(rangeA1) {
