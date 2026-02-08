@@ -61,19 +61,28 @@ function getSettings_() {
 }
 
 function saveSettings_(settings) {
+  if (!settings) {
+    throw new Error('Datos de configuración vacíos.');
+  }
   var props = PropertiesService.getDocumentProperties();
   var userProps = PropertiesService.getUserProperties();
-  if (settings.language) props.setProperty('APP_LANGUAGE', settings.language);
-  if (settings.aiEndpoint !== undefined) props.setProperty('AI_ENDPOINT', settings.aiEndpoint);
-  if (settings.aiApiKey !== undefined) {
-    if (settings.aiApiKey === '') {
-      userProps.deleteProperty('AI_API_KEY');
-    } else {
-      userProps.setProperty('AI_API_KEY', settings.aiApiKey);
-    }
+  var language = (settings.language || '').toString().trim();
+  var endpoint = settings.aiEndpoint !== undefined ? settings.aiEndpoint.toString().trim() : '';
+  var apiKey = (settings.aiApiKey || '').toString().trim();
+  if (!apiKey) {
+    throw new Error('La API key no puede estar vacía.');
   }
+  if (language) props.setProperty('APP_LANGUAGE', language);
+  props.setProperty('AI_ENDPOINT', endpoint);
+  userProps.setProperty('AI_API_KEY', apiKey);
   return {
-    message: settings.aiApiKey ? 'Clave guardada correctamente.' : 'Configuración guardada.'
+    ok: true,
+    message: 'Clave guardada correctamente.',
+    settings: {
+      language: language || Session.getActiveUserLocale(),
+      aiEndpoint: endpoint,
+      aiApiKey: apiKey
+    }
   };
 }
 

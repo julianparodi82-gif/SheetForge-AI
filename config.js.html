@@ -22,14 +22,21 @@
   document.getElementById('btnSave').addEventListener('click', function() {
     const button = this;
     button.disabled = true;
+    setStatus('Guardando...', false);
     const payload = {
       language: document.getElementById('language').value,
       aiEndpoint: document.getElementById('aiEndpoint').value.trim(),
       aiApiKey: document.getElementById('aiApiKey').value.trim()
     };
     google.script.run.withSuccessHandler(function(result) {
-      setStatus(result.message || 'Configuración guardada.', false);
-      loadSettings();
+      if (result && result.settings) {
+        document.getElementById('language').value = result.settings.language || 'es';
+        document.getElementById('aiEndpoint').value = result.settings.aiEndpoint || '';
+        document.getElementById('aiApiKey').value = result.settings.aiApiKey || '';
+      } else {
+        loadSettings();
+      }
+      setStatus(result && result.message ? result.message : 'Clave guardada correctamente.', false);
       button.disabled = false;
     }).withFailureHandler(function(error) {
       setStatus('Error al guardar: ' + (error && error.message ? error.message : 'desconocido'), true);
