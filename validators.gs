@@ -50,7 +50,11 @@ function validateAction_(action, flags) {
     }
   }
   if (requiresRange_(action.op) && !action.rangeA1) {
-    return 'Rango inválido: falta rangeA1';
+    var activeRange = SpreadsheetApp.getActive().getActiveRange();
+    action.rangeA1 = activeRange ? activeRange.getA1Notation() : null;
+    if (!action.rangeA1) {
+      return 'Rango inválido: falta rangeA1';
+    }
   }
   if (action.op === 'setValues' && !Array.isArray(action.values)) {
     return 'Rango inválido: falta values';
