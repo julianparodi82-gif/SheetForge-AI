@@ -62,6 +62,21 @@ function validateAction_(action, flags) {
   if (action.op === 'setValues' && !Array.isArray(action.values)) {
     return 'Rango inválido: falta values';
   }
+  if (action.op === 'setValues' && action.rangeA1 && Array.isArray(action.values)) {
+    var valuesRows = action.values.length;
+    var valuesCols = valuesRows ? action.values[0].length : 0;
+    if (valuesRows && valuesCols) {
+      var sheetForValues = SpreadsheetApp.getActive().getSheetByName(action.sheetName);
+      var startRange = sheetForValues.getRange(action.rangeA1);
+      var targetRange = sheetForValues.getRange(
+        startRange.getRow(),
+        startRange.getColumn(),
+        valuesRows,
+        valuesCols
+      );
+      action.rangeA1 = targetRange.getA1Notation();
+    }
+  }
   if (action.op === 'setBackground' && !action.color) {
     action.color = '#ffeb3b';
   }
