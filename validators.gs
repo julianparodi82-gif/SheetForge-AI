@@ -18,6 +18,9 @@ function validatePlan_(plan, flags) {
   }
   for (var i = 0; i < plan.actions.length; i++) {
     var action = plan.actions[i];
+    if (action && action.op === 'setBackgroundColor') {
+      action.op = 'setBackground';
+    }
     if (!action.op || ALLOWED_OPS.indexOf(action.op) === -1) {
       return 'Operación no permitida: ' + action.op + ' (no está en whitelist)';
     }
