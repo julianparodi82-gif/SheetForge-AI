@@ -30,8 +30,9 @@ function editPlan(editPrompt, currentPlan, flags) {
 
 function buildPlanWithAi_(prompt, flags, currentPlan) {
   var props = PropertiesService.getDocumentProperties();
+  var userProps = PropertiesService.getUserProperties();
   var endpoint = props.getProperty('AI_ENDPOINT') || '';
-  var apiKey = props.getProperty('AI_API_KEY') || '';
+  var apiKey = userProps.getProperty('AI_API_KEY') || '';
   if (!apiKey) {
     return { error: 'IA no configurada. Define tu API key en Configuración.' };
   }

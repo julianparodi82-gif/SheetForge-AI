@@ -52,19 +52,29 @@ function hideSheet_(sheet) {
 
 function getSettings_() {
   var props = PropertiesService.getDocumentProperties();
+  var userProps = PropertiesService.getUserProperties();
   return {
     language: props.getProperty('APP_LANGUAGE') || Session.getActiveUserLocale(),
     aiEndpoint: props.getProperty('AI_ENDPOINT') || '',
-    aiApiKey: props.getProperty('AI_API_KEY') || ''
+    aiApiKey: userProps.getProperty('AI_API_KEY') || ''
   };
 }
 
 function saveSettings_(settings) {
   var props = PropertiesService.getDocumentProperties();
+  var userProps = PropertiesService.getUserProperties();
   if (settings.language) props.setProperty('APP_LANGUAGE', settings.language);
   if (settings.aiEndpoint !== undefined) props.setProperty('AI_ENDPOINT', settings.aiEndpoint);
-  if (settings.aiApiKey !== undefined) props.setProperty('AI_API_KEY', settings.aiApiKey);
-  return { message: 'Configuración guardada.' };
+  if (settings.aiApiKey !== undefined) {
+    if (settings.aiApiKey === '') {
+      userProps.deleteProperty('AI_API_KEY');
+    } else {
+      userProps.setProperty('AI_API_KEY', settings.aiApiKey);
+    }
+  }
+  return {
+    message: settings.aiApiKey ? 'Clave guardada correctamente.' : 'Configuración guardada.'
+  };
 }
 
 function ensureLogHeaders_() {
