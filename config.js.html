@@ -23,25 +23,38 @@
     const button = this;
     button.disabled = true;
     setStatus('Guardando...', false);
+    let timeoutId = null;
     const payload = {
       language: document.getElementById('language').value,
       aiEndpoint: document.getElementById('aiEndpoint').value.trim(),
       aiApiKey: document.getElementById('aiApiKey').value.trim()
     };
-    google.script.run.withSuccessHandler(function(result) {
-      if (result && result.settings) {
-        document.getElementById('language').value = result.settings.language || 'es';
-        document.getElementById('aiEndpoint').value = result.settings.aiEndpoint || '';
-        document.getElementById('aiApiKey').value = result.settings.aiApiKey || '';
-      } else {
-        loadSettings();
-      }
-      setStatus(result && result.message ? result.message : 'Clave guardada correctamente.', false);
+    try {
+      timeoutId = setTimeout(function() {
+        setStatus('No se recibió respuesta al guardar. Reabre el diálogo e intenta de nuevo.', true);
+        button.disabled = false;
+      }, 10000);
+      google.script.run.withSuccessHandler(function(result) {
+        if (timeoutId) clearTimeout(timeoutId);
+        if (result && result.settings) {
+          document.getElementById('language').value = result.settings.language || 'es';
+          document.getElementById('aiEndpoint').value = result.settings.aiEndpoint || '';
+          document.getElementById('aiApiKey').value = result.settings.aiApiKey || '';
+        } else {
+          loadSettings();
+        }
+        setStatus(result && result.message ? result.message : 'Clave guardada correctamente.', false);
+        button.disabled = false;
+      }).withFailureHandler(function(error) {
+        if (timeoutId) clearTimeout(timeoutId);
+        setStatus('Error al guardar: ' + (error && error.message ? error.message : 'desconocido'), true);
+        button.disabled = false;
+      }).saveSettings_(payload);
+    } catch (error) {
+      if (timeoutId) clearTimeout(timeoutId);
+      setStatus('Error al iniciar el guardado: ' + (error && error.message ? error.message : 'desconocido'), true);
       button.disabled = false;
-    }).withFailureHandler(function(error) {
-      setStatus('Error al guardar: ' + (error && error.message ? error.message : 'desconocido'), true);
-      button.disabled = false;
-    }).saveSettings_(payload);
+    }
   });
 
   loadSettings();
