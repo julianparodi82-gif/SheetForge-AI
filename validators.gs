@@ -1,5 +1,5 @@
 var ALLOWED_OPS = [
-  'setValue', 'setFormula', 'setFormulas', 'setBackground', 'setNumberFormat', 'clearContent',
+  'setValue', 'setFormula', 'setFormulas', 'setBackground', 'setBackgrounds', 'setNumberFormat', 'clearContent',
   'copyPasteValues', 'moveRange', 'insertRows', 'deleteRows', 'renameSheet', 'createSheet',
   'deleteSheet', 'setColumnWidth', 'setRowHeight', 'renameFile', 'exportPdf',
   'exportSpreadsheetPdf', 'insertImageFromDrive', 'setImageFormula'
@@ -44,6 +44,9 @@ function validateAction_(action, flags) {
   if (requiresRange_(action.op) && !action.rangeA1) {
     return 'Rango inválido: falta rangeA1';
   }
+  if (action.op === 'setBackgrounds' && !Array.isArray(action.colors)) {
+    return 'Color inválido: falta colors';
+  }
   if (action.op === 'copyPasteValues') {
     if (!action.sourceA1 || !action.targetA1) {
       return 'Rango inválido: falta sourceA1/targetA1';
@@ -68,7 +71,7 @@ function validateAction_(action, flags) {
 
 function requiresSheet_(op) {
   return [
-    'setValue', 'setFormula', 'setFormulas', 'setBackground', 'setNumberFormat', 'clearContent',
+    'setValue', 'setFormula', 'setFormulas', 'setBackground', 'setBackgrounds', 'setNumberFormat', 'clearContent',
     'copyPasteValues', 'moveRange', 'insertRows', 'deleteRows', 'renameSheet', 'createSheet',
     'deleteSheet', 'setColumnWidth', 'setRowHeight', 'exportPdf', 'insertImageFromDrive',
     'setImageFormula'
@@ -77,7 +80,7 @@ function requiresSheet_(op) {
 
 function requiresRange_(op) {
   return [
-    'setValue', 'setFormula', 'setFormulas', 'setBackground', 'setNumberFormat', 'clearContent',
+    'setValue', 'setFormula', 'setFormulas', 'setBackground', 'setBackgrounds', 'setNumberFormat', 'clearContent',
     'setImageFormula'
   ].indexOf(op) !== -1;
 }
