@@ -1,7 +1,9 @@
 var ALLOWED_OPS = [
   'setValue', 'setValues', 'setFormula', 'setFormulas', 'setBackground', 'setBackgrounds',
-  'setFontColor', 'setFontWeight', 'setFontSize', 'setHorizontalAlignment', 'setVerticalAlignment',
-  'setWrap', 'setBorder', 'setNumberFormat', 'clearContent', 'copyPasteValues', 'moveRange',
+  'setFontColor', 'setFontWeight', 'setFontSize', 'setFontFamily', 'setFontStyle', 'setFontLine',
+  'setHorizontalAlignment', 'setVerticalAlignment', 'setWrap', 'setBorder', 'setBorders',
+  'setNumberFormat', 'clearContent', 'copyPasteValues', 'copyPasteFormats', 'copyPasteAll',
+  'copyPasteFormulas', 'moveRange',
   'insertRows', 'deleteRows', 'insertColumns', 'deleteColumns', 'hideRows', 'showRows',
   'hideColumns', 'showColumns', 'renameSheet', 'createSheet', 'deleteSheet', 'hideSheet',
   'showSheet', 'setColumnWidth', 'setRowHeight', 'renameFile', 'exportPdf',
@@ -83,10 +85,24 @@ function validateAction_(action, flags) {
   if (action.op === 'setBackgrounds' && !Array.isArray(action.colors)) {
     return 'Color inválido: falta colors';
   }
-  if (action.op === 'setBorder' && action.border === undefined) {
+  if ((action.op === 'setBorder' || action.op === 'setBorders') && action.border === undefined) {
     return 'Borde inválido: falta border';
   }
+  if (action.op === 'setFontFamily' && !action.family) {
+    return 'Formato inválido: falta family';
+  }
+  if (action.op === 'setFontStyle' && !action.style) {
+    return 'Formato inválido: falta style';
+  }
+  if (action.op === 'setFontLine' && !action.line) {
+    return 'Formato inválido: falta line';
+  }
   if (action.op === 'copyPasteValues') {
+    if (!action.sourceA1 || !action.targetA1) {
+      return 'Rango inválido: falta sourceA1/targetA1';
+    }
+  }
+  if (action.op === 'copyPasteFormats' || action.op === 'copyPasteAll' || action.op === 'copyPasteFormulas') {
     if (!action.sourceA1 || !action.targetA1) {
       return 'Rango inválido: falta sourceA1/targetA1';
     }
@@ -131,8 +147,10 @@ function validateAction_(action, flags) {
 function requiresSheet_(op) {
   return [
     'setValue', 'setValues', 'setFormula', 'setFormulas', 'setBackground', 'setBackgrounds',
-    'setFontColor', 'setFontWeight', 'setFontSize', 'setHorizontalAlignment', 'setVerticalAlignment',
-    'setWrap', 'setBorder', 'setNumberFormat', 'clearContent', 'copyPasteValues', 'moveRange',
+    'setFontColor', 'setFontWeight', 'setFontSize', 'setFontFamily', 'setFontStyle', 'setFontLine',
+    'setHorizontalAlignment', 'setVerticalAlignment', 'setWrap', 'setBorder', 'setBorders',
+    'setNumberFormat', 'clearContent', 'copyPasteValues', 'copyPasteFormats', 'copyPasteAll',
+    'copyPasteFormulas', 'moveRange',
     'insertRows', 'deleteRows', 'insertColumns', 'deleteColumns', 'hideRows', 'showRows',
     'hideColumns', 'showColumns', 'renameSheet', 'createSheet', 'deleteSheet', 'hideSheet',
     'showSheet', 'setColumnWidth', 'setRowHeight', 'exportPdf', 'insertImageFromDrive',
@@ -143,8 +161,9 @@ function requiresSheet_(op) {
 function requiresRange_(op) {
   return [
     'setValue', 'setValues', 'setFormula', 'setFormulas', 'setBackground', 'setBackgrounds',
-    'setFontColor', 'setFontWeight', 'setFontSize', 'setHorizontalAlignment', 'setVerticalAlignment',
-    'setWrap', 'setBorder', 'setNumberFormat', 'clearContent', 'setImageFormula'
+    'setFontColor', 'setFontWeight', 'setFontSize', 'setFontFamily', 'setFontStyle', 'setFontLine',
+    'setHorizontalAlignment', 'setVerticalAlignment', 'setWrap', 'setBorder', 'setBorders',
+    'setNumberFormat', 'clearContent', 'setImageFormula'
   ].indexOf(op) !== -1;
 }
 

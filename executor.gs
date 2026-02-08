@@ -65,6 +65,18 @@ function executeAction_(action) {
     ss.getSheetByName(action.sheetName).getRange(action.rangeA1).setFontSize(action.size);
     return;
   }
+  if (action.op === 'setFontFamily') {
+    ss.getSheetByName(action.sheetName).getRange(action.rangeA1).setFontFamily(action.family);
+    return;
+  }
+  if (action.op === 'setFontStyle') {
+    ss.getSheetByName(action.sheetName).getRange(action.rangeA1).setFontStyle(action.style);
+    return;
+  }
+  if (action.op === 'setFontLine') {
+    ss.getSheetByName(action.sheetName).getRange(action.rangeA1).setFontLine(action.line);
+    return;
+  }
   if (action.op === 'setHorizontalAlignment') {
     ss.getSheetByName(action.sheetName).getRange(action.rangeA1).setHorizontalAlignment(action.alignment);
     return;
@@ -77,16 +89,28 @@ function executeAction_(action) {
     ss.getSheetByName(action.sheetName).getRange(action.rangeA1).setWrap(!!action.wrap);
     return;
   }
-  if (action.op === 'setBorder') {
+  if (action.op === 'setBorder' || action.op === 'setBorders') {
     var range = ss.getSheetByName(action.sheetName).getRange(action.rangeA1);
-    range.setBorder(
-      !!action.border,
-      !!action.border,
-      !!action.border,
-      !!action.border,
-      !!action.border,
-      !!action.border
-    );
+    var border = action.border;
+    if (typeof border === 'object') {
+      range.setBorder(
+        !!border.top,
+        !!border.left,
+        !!border.bottom,
+        !!border.right,
+        !!border.vertical,
+        !!border.horizontal
+      );
+    } else {
+      range.setBorder(
+        !!border,
+        !!border,
+        !!border,
+        !!border,
+        !!border,
+        !!border
+      );
+    }
     return;
   }
   if (action.op === 'setNumberFormat') {
@@ -101,6 +125,24 @@ function executeAction_(action) {
     var src = ss.getSheetByName(action.sheetName).getRange(action.sourceA1);
     var dest = ss.getSheetByName(action.sheetName).getRange(action.targetA1);
     src.copyTo(dest, { contentsOnly: true });
+    return;
+  }
+  if (action.op === 'copyPasteFormats') {
+    var srcFormats = ss.getSheetByName(action.sheetName).getRange(action.sourceA1);
+    var destFormats = ss.getSheetByName(action.sheetName).getRange(action.targetA1);
+    srcFormats.copyTo(destFormats, { formatOnly: true });
+    return;
+  }
+  if (action.op === 'copyPasteFormulas') {
+    var srcFormulas = ss.getSheetByName(action.sheetName).getRange(action.sourceA1);
+    var destFormulas = ss.getSheetByName(action.sheetName).getRange(action.targetA1);
+    srcFormulas.copyTo(destFormulas, { contentsOnly: false });
+    return;
+  }
+  if (action.op === 'copyPasteAll') {
+    var srcAll = ss.getSheetByName(action.sheetName).getRange(action.sourceA1);
+    var destAll = ss.getSheetByName(action.sheetName).getRange(action.targetA1);
+    srcAll.copyTo(destAll);
     return;
   }
   if (action.op === 'moveRange') {
