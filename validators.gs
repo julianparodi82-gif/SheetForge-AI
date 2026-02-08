@@ -22,13 +22,14 @@ function validatePlan_(plan, flags) {
 
 function validateAction_(action, flags) {
   if (flags && flags.safeMode) {
-    if (action.op === 'deleteSheet' || action.op === 'renameFile') {
+    var blockedOps = getSafeBlockedOps_();
+    if (blockedOps.indexOf(action.op) !== -1) {
       return 'Operación no permitida: ' + action.op + ' (bloqueada por Safe Mode)';
     }
-    if (action.op === 'deleteRows' && action.numRows && action.numRows > 50) {
+    if (action.op === 'deleteRows' && action.numRows && action.numRows > 50 && blockedOps.indexOf('deleteRows') !== -1) {
       return 'Operación no permitida: deleteRows (bloqueada por Safe Mode)';
     }
-    if (action.op === 'clearContent' && action.rangeA1 && rangeIsLarge_(action.rangeA1)) {
+    if (action.op === 'clearContent' && action.rangeA1 && rangeIsLarge_(action.rangeA1) && blockedOps.indexOf('clearContent') !== -1) {
       return 'Operación no permitida: clearContent (bloqueada por Safe Mode)';
     }
   }

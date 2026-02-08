@@ -53,10 +53,13 @@ function hideSheet_(sheet) {
 function getSettings() {
   var props = PropertiesService.getDocumentProperties();
   var userProps = PropertiesService.getUserProperties();
+  var safeBlockedOpsRaw = props.getProperty('SAFE_BLOCKED_OPS');
+  var safeBlockedOps = safeBlockedOpsRaw ? JSON.parse(safeBlockedOpsRaw) : getDefaultSafeBlockedOps_();
   return {
     language: props.getProperty('APP_LANGUAGE') || Session.getActiveUserLocale(),
     aiEndpoint: props.getProperty('AI_ENDPOINT') || '',
-    aiApiKey: userProps.getProperty('AI_API_KEY') || props.getProperty('AI_API_KEY') || ''
+    aiApiKey: userProps.getProperty('AI_API_KEY') || props.getProperty('AI_API_KEY') || '',
+    safeBlockedOps: safeBlockedOps
   };
 }
 
@@ -69,6 +72,7 @@ function saveSettings(settings) {
   var language = (settings.language || '').toString().trim();
   var endpoint = settings.aiEndpoint !== undefined ? settings.aiEndpoint.toString().trim() : '';
   var apiKey = (settings.aiApiKey || '').toString().trim();
+  var safeBlockedOps = Array.isArray(settings.safeBlockedOps) ? settings.safeBlockedOps : getDefaultSafeBlockedOps_();
   if (!apiKey) {
     throw new Error('La API key no puede estar vacía.');
   }
@@ -76,15 +80,27 @@ function saveSettings(settings) {
   props.setProperty('AI_ENDPOINT', endpoint);
   userProps.setProperty('AI_API_KEY', apiKey);
   props.setProperty('AI_API_KEY', apiKey);
+  props.setProperty('SAFE_BLOCKED_OPS', JSON.stringify(safeBlockedOps));
   return {
     ok: true,
     message: 'Clave guardada correctamente.',
     settings: {
       language: language || Session.getActiveUserLocale(),
       aiEndpoint: endpoint,
-      aiApiKey: apiKey
+      aiApiKey: apiKey,
+      safeBlockedOps: safeBlockedOps
     }
   };
+}
+
+function getDefaultSafeBlockedOps_() {
+  return ['deleteSheet', 'renameFile', 'deleteRows', 'clearContent'];
+}
+
+function getSafeBlockedOps_() {
+  var props = PropertiesService.getDocumentProperties();
+  var raw = props.getProperty('SAFE_BLOCKED_OPS');
+  return raw ? JSON.parse(raw) : getDefaultSafeBlockedOps_();
 }
 
 function ensureLogHeaders_() {
