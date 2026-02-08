@@ -33,6 +33,10 @@ function executeAction_(action) {
     sheet.getRange(action.rangeA1).setValue(action.value);
     return;
   }
+  if (action.op === 'setValues') {
+    ss.getSheetByName(action.sheetName).getRange(action.rangeA1).setValues(action.values);
+    return;
+  }
   if (action.op === 'setFormula') {
     ss.getSheetByName(action.sheetName).getRange(action.rangeA1).setFormula(action.formula);
     return;
@@ -47,6 +51,42 @@ function executeAction_(action) {
   }
   if (action.op === 'setBackgrounds') {
     ss.getSheetByName(action.sheetName).getRange(action.rangeA1).setBackgrounds(action.colors);
+    return;
+  }
+  if (action.op === 'setFontColor') {
+    ss.getSheetByName(action.sheetName).getRange(action.rangeA1).setFontColor(action.color);
+    return;
+  }
+  if (action.op === 'setFontWeight') {
+    ss.getSheetByName(action.sheetName).getRange(action.rangeA1).setFontWeight(action.weight);
+    return;
+  }
+  if (action.op === 'setFontSize') {
+    ss.getSheetByName(action.sheetName).getRange(action.rangeA1).setFontSize(action.size);
+    return;
+  }
+  if (action.op === 'setHorizontalAlignment') {
+    ss.getSheetByName(action.sheetName).getRange(action.rangeA1).setHorizontalAlignment(action.alignment);
+    return;
+  }
+  if (action.op === 'setVerticalAlignment') {
+    ss.getSheetByName(action.sheetName).getRange(action.rangeA1).setVerticalAlignment(action.alignment);
+    return;
+  }
+  if (action.op === 'setWrap') {
+    ss.getSheetByName(action.sheetName).getRange(action.rangeA1).setWrap(!!action.wrap);
+    return;
+  }
+  if (action.op === 'setBorder') {
+    var range = ss.getSheetByName(action.sheetName).getRange(action.rangeA1);
+    range.setBorder(
+      !!action.border,
+      !!action.border,
+      !!action.border,
+      !!action.border,
+      !!action.border,
+      !!action.border
+    );
     return;
   }
   if (action.op === 'setNumberFormat') {
@@ -77,6 +117,30 @@ function executeAction_(action) {
     ss.getSheetByName(action.sheetName).deleteRows(action.rowIndex, action.numRows);
     return;
   }
+  if (action.op === 'insertColumns') {
+    ss.getSheetByName(action.sheetName).insertColumns(action.columnIndex, action.numColumns);
+    return;
+  }
+  if (action.op === 'deleteColumns') {
+    ss.getSheetByName(action.sheetName).deleteColumns(action.columnIndex, action.numColumns);
+    return;
+  }
+  if (action.op === 'hideRows') {
+    ss.getSheetByName(action.sheetName).hideRows(action.rowIndex, action.numRows);
+    return;
+  }
+  if (action.op === 'showRows') {
+    ss.getSheetByName(action.sheetName).showRows(action.rowIndex, action.numRows);
+    return;
+  }
+  if (action.op === 'hideColumns') {
+    ss.getSheetByName(action.sheetName).hideColumns(action.columnIndex, action.numColumns);
+    return;
+  }
+  if (action.op === 'showColumns') {
+    ss.getSheetByName(action.sheetName).showColumns(action.columnIndex, action.numColumns);
+    return;
+  }
   if (action.op === 'renameSheet') {
     ss.getSheetByName(action.sheetName).setName(action.newName);
     return;
@@ -88,6 +152,14 @@ function executeAction_(action) {
   if (action.op === 'deleteSheet') {
     var del = ss.getSheetByName(action.sheetName);
     ss.deleteSheet(del);
+    return;
+  }
+  if (action.op === 'hideSheet') {
+    ss.getSheetByName(action.sheetName).hideSheet();
+    return;
+  }
+  if (action.op === 'showSheet') {
+    ss.getSheetByName(action.sheetName).showSheet();
     return;
   }
   if (action.op === 'setColumnWidth') {

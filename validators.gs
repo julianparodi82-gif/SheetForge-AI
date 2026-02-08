@@ -1,7 +1,10 @@
 var ALLOWED_OPS = [
-  'setValue', 'setFormula', 'setFormulas', 'setBackground', 'setBackgrounds', 'setNumberFormat', 'clearContent',
-  'copyPasteValues', 'moveRange', 'insertRows', 'deleteRows', 'renameSheet', 'createSheet',
-  'deleteSheet', 'setColumnWidth', 'setRowHeight', 'renameFile', 'exportPdf',
+  'setValue', 'setValues', 'setFormula', 'setFormulas', 'setBackground', 'setBackgrounds',
+  'setFontColor', 'setFontWeight', 'setFontSize', 'setHorizontalAlignment', 'setVerticalAlignment',
+  'setWrap', 'setBorder', 'setNumberFormat', 'clearContent', 'copyPasteValues', 'moveRange',
+  'insertRows', 'deleteRows', 'insertColumns', 'deleteColumns', 'hideRows', 'showRows',
+  'hideColumns', 'showColumns', 'renameSheet', 'createSheet', 'deleteSheet', 'hideSheet',
+  'showSheet', 'setColumnWidth', 'setRowHeight', 'renameFile', 'exportPdf',
   'exportSpreadsheetPdf', 'insertImageFromDrive', 'setImageFormula'
 ];
 
@@ -35,7 +38,11 @@ function validateAction_(action, flags) {
   }
   if (requiresSheet_(action.op)) {
     if (!action.sheetName) {
-      return 'Operación no permitida: falta sheetName';
+      var activeSheet = SpreadsheetApp.getActive().getActiveSheet();
+      action.sheetName = activeSheet ? activeSheet.getName() : null;
+      if (!action.sheetName) {
+        return 'Operación no permitida: falta sheetName';
+      }
     }
     var sheet = SpreadsheetApp.getActive().getSheetByName(action.sheetName);
     if (!sheet) {
@@ -45,8 +52,14 @@ function validateAction_(action, flags) {
   if (requiresRange_(action.op) && !action.rangeA1) {
     return 'Rango inválido: falta rangeA1';
   }
+  if (action.op === 'setValues' && !Array.isArray(action.values)) {
+    return 'Rango inválido: falta values';
+  }
   if (action.op === 'setBackgrounds' && !Array.isArray(action.colors)) {
     return 'Color inválido: falta colors';
+  }
+  if (action.op === 'setBorder' && action.border === undefined) {
+    return 'Borde inválido: falta border';
   }
   if (action.op === 'copyPasteValues') {
     if (!action.sourceA1 || !action.targetA1) {
@@ -56,6 +69,26 @@ function validateAction_(action, flags) {
   if (action.op === 'moveRange') {
     if (!action.sourceA1 || !action.targetA1) {
       return 'Rango inválido: falta sourceA1/targetA1';
+    }
+  }
+  if (action.op === 'insertRows' || action.op === 'deleteRows') {
+    if (!action.rowIndex || !action.numRows) {
+      return 'Rango inválido: falta rowIndex/numRows';
+    }
+  }
+  if (action.op === 'insertColumns' || action.op === 'deleteColumns') {
+    if (!action.columnIndex || !action.numColumns) {
+      return 'Rango inválido: falta columnIndex/numColumns';
+    }
+  }
+  if (action.op === 'hideRows' || action.op === 'showRows') {
+    if (!action.rowIndex || !action.numRows) {
+      return 'Rango inválido: falta rowIndex/numRows';
+    }
+  }
+  if (action.op === 'hideColumns' || action.op === 'showColumns') {
+    if (!action.columnIndex || !action.numColumns) {
+      return 'Rango inválido: falta columnIndex/numColumns';
     }
   }
   if (action.op === 'insertImageFromDrive' && !action.cell) {
@@ -72,17 +105,21 @@ function validateAction_(action, flags) {
 
 function requiresSheet_(op) {
   return [
-    'setValue', 'setFormula', 'setFormulas', 'setBackground', 'setBackgrounds', 'setNumberFormat', 'clearContent',
-    'copyPasteValues', 'moveRange', 'insertRows', 'deleteRows', 'renameSheet', 'createSheet',
-    'deleteSheet', 'setColumnWidth', 'setRowHeight', 'exportPdf', 'insertImageFromDrive',
+    'setValue', 'setValues', 'setFormula', 'setFormulas', 'setBackground', 'setBackgrounds',
+    'setFontColor', 'setFontWeight', 'setFontSize', 'setHorizontalAlignment', 'setVerticalAlignment',
+    'setWrap', 'setBorder', 'setNumberFormat', 'clearContent', 'copyPasteValues', 'moveRange',
+    'insertRows', 'deleteRows', 'insertColumns', 'deleteColumns', 'hideRows', 'showRows',
+    'hideColumns', 'showColumns', 'renameSheet', 'createSheet', 'deleteSheet', 'hideSheet',
+    'showSheet', 'setColumnWidth', 'setRowHeight', 'exportPdf', 'insertImageFromDrive',
     'setImageFormula'
   ].indexOf(op) !== -1;
 }
 
 function requiresRange_(op) {
   return [
-    'setValue', 'setFormula', 'setFormulas', 'setBackground', 'setBackgrounds', 'setNumberFormat', 'clearContent',
-    'setImageFormula'
+    'setValue', 'setValues', 'setFormula', 'setFormulas', 'setBackground', 'setBackgrounds',
+    'setFontColor', 'setFontWeight', 'setFontSize', 'setHorizontalAlignment', 'setVerticalAlignment',
+    'setWrap', 'setBorder', 'setNumberFormat', 'clearContent', 'setImageFormula'
   ].indexOf(op) !== -1;
 }
 
