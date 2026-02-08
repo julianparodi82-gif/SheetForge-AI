@@ -49,6 +49,10 @@ function executeAction_(action) {
     ss.getSheetByName(action.sheetName).getRange(action.rangeA1).setBackground(action.color);
     return;
   }
+  if (action.op === 'setBackgroundColor') {
+    ss.getSheetByName(action.sheetName).getRange(action.rangeA1).setBackground(action.color);
+    return;
+  }
   if (action.op === 'setBackgrounds') {
     ss.getSheetByName(action.sheetName).getRange(action.rangeA1).setBackgrounds(action.colors);
     return;

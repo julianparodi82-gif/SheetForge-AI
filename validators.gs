@@ -1,5 +1,6 @@
 var ALLOWED_OPS = [
   'setValue', 'setValues', 'setFormula', 'setFormulas', 'setBackground', 'setBackgrounds',
+  'setBackgroundColor',
   'setFontColor', 'setFontWeight', 'setFontSize', 'setFontFamily', 'setFontStyle', 'setFontLine',
   'setHorizontalAlignment', 'setVerticalAlignment', 'setWrap', 'setBorder', 'setBorders',
   'setTextRotation',
@@ -83,6 +84,9 @@ function validateAction_(action, flags) {
   if (action.op === 'setBackground' && !action.color) {
     action.color = '#ffeb3b';
   }
+  if (action.op === 'setBackgroundColor' && !action.color) {
+    action.color = '#ffeb3b';
+  }
   if (action.op === 'setBackgrounds' && !Array.isArray(action.colors)) {
     return 'Color inválido: falta colors';
   }
@@ -158,6 +162,7 @@ function validateAction_(action, flags) {
 function requiresSheet_(op) {
   return [
     'setValue', 'setValues', 'setFormula', 'setFormulas', 'setBackground', 'setBackgrounds',
+    'setBackgroundColor',
     'setFontColor', 'setFontWeight', 'setFontSize', 'setFontFamily', 'setFontStyle', 'setFontLine',
     'setHorizontalAlignment', 'setVerticalAlignment', 'setWrap', 'setBorder', 'setBorders',
     'setTextRotation',
@@ -173,6 +178,7 @@ function requiresSheet_(op) {
 function requiresRange_(op) {
   return [
     'setValue', 'setValues', 'setFormula', 'setFormulas', 'setBackground', 'setBackgrounds',
+    'setBackgroundColor',
     'setFontColor', 'setFontWeight', 'setFontSize', 'setFontFamily', 'setFontStyle', 'setFontLine',
     'setHorizontalAlignment', 'setVerticalAlignment', 'setWrap', 'setBorder', 'setBorders',
     'setTextRotation',
