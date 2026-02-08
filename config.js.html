@@ -11,7 +11,7 @@
       document.getElementById('language').value = lang.startsWith('en') ? 'en' : 'es';
       document.getElementById('aiEndpoint').value = settings.aiEndpoint || '';
       document.getElementById('aiApiKey').value = settings.aiApiKey || '';
-    }).getSettings_();
+    }).getSettings();
   }
 
   document.getElementById('toggleKey').addEventListener('change', function() {
@@ -49,7 +49,7 @@
         if (timeoutId) clearTimeout(timeoutId);
         setStatus('Error al guardar: ' + (error && error.message ? error.message : 'desconocido'), true);
         button.disabled = false;
-      }).saveSettings_(payload);
+      }).saveSettings(payload);
     } catch (error) {
       if (timeoutId) clearTimeout(timeoutId);
       setStatus('Error al iniciar el guardado: ' + (error && error.message ? error.message : 'desconocido'), true);

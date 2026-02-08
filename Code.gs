@@ -50,7 +50,7 @@ function hideSheet_(sheet) {
   }
 }
 
-function getSettings_() {
+function getSettings() {
   var props = PropertiesService.getDocumentProperties();
   var userProps = PropertiesService.getUserProperties();
   return {
@@ -60,7 +60,7 @@ function getSettings_() {
   };
 }
 
-function saveSettings_(settings) {
+function saveSettings(settings) {
   if (!settings) {
     throw new Error('Datos de configuración vacíos.');
   }
