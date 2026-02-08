@@ -20,10 +20,11 @@
         <option value="es">Español</option>
         <option value="en">English</option>
       </select>
-      <label for="aiEndpoint">AI Endpoint</label>
-      <input id="aiEndpoint" type="text" placeholder="https://..." />
+      <label for="aiEndpoint">AI Endpoint (opcional)</label>
+      <input id="aiEndpoint" type="text" placeholder="https://api.openai.com/v1/chat/completions" />
       <label for="aiApiKey">API Key (ChatGPT)</label>
       <input id="aiApiKey" type="password" placeholder="sk-..." />
+      <label><input type="checkbox" id="toggleKey"> Mostrar clave</label>
       <button id="btnSave">Guardar</button>
       <div id="status" class="status"></div>
     </div>

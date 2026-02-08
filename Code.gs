@@ -9,7 +9,7 @@ function showSidebar() {
   ensureSpecialSheets_();
   var html = HtmlService.createTemplateFromFile('sidebar')
     .evaluate()
-    .setTitle('AI Operator');
+    .setTitle('Operador IA');
   SpreadsheetApp.getUi().showSidebar(html);
 }
 

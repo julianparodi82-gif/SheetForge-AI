@@ -8,11 +8,9 @@ function buildPlan(prompt, flags) {
     var summary = buildSummary_(plan);
     return { plan: plan, summary: summary };
   }
-  var endpoint = PropertiesService.getDocumentProperties().getProperty('AI_ENDPOINT');
-  if (!endpoint) {
-    return { error: 'IA no configurada. Usa comandos "/" o configura AI_ENDPOINT.' };
-  }
-  return { error: 'IA no configurada en este entorno.' };
+  var aiResult = buildPlanWithAi_(trimmed, flags, null);
+  if (aiResult.error) return aiResult;
+  return aiResult;
 }
 
 function editPlan(editPrompt, currentPlan, flags) {
@@ -25,11 +23,27 @@ function editPlan(editPrompt, currentPlan, flags) {
     var summary = buildSummary_(updated);
     return { plan: updated, summary: summary };
   }
-  var endpoint = PropertiesService.getDocumentProperties().getProperty('AI_ENDPOINT');
-  if (!endpoint) {
-    return { error: 'IA no configurada. Usa comandos "/" para editar.' };
+  var aiResult = buildPlanWithAi_(trimmed, flags, currentPlan);
+  if (aiResult.error) return aiResult;
+  return aiResult;
+}
+
+function buildPlanWithAi_(prompt, flags, currentPlan) {
+  var props = PropertiesService.getDocumentProperties();
+  var endpoint = props.getProperty('AI_ENDPOINT') || '';
+  var apiKey = props.getProperty('AI_API_KEY') || '';
+  if (!apiKey) {
+    return { error: 'IA no configurada. Define tu API key en Configuración.' };
   }
-  return { error: 'IA no configurada en este entorno.' };
+  var context = getContext_();
+  var payload = buildAiPayload_(prompt, flags, currentPlan, context);
+  var response = callAiEndpoint_(endpoint, apiKey, payload);
+  if (response.error) return response;
+  var parsed = parseAiPlanResponse_(response);
+  if (parsed.error) return parsed;
+  var validationError = validatePlan_(parsed.plan, flags);
+  if (validationError) return { error: validationError };
+  return { plan: parsed.plan, summary: parsed.summary };
 }
 
 function commandToPlan_(prompt, flags) {
@@ -67,6 +81,79 @@ function editPlanWithCommand_(prompt, plan) {
     return plan;
   }
   return { error: 'Comando de edición no soportado.' };
+}
+
+function buildAiPayload_(prompt, flags, currentPlan, context) {
+  var system = [
+    'Eres un generador de PLAN JSON para Google Sheets.',
+    'Responde SOLO con JSON válido.',
+    'Formato esperado:',
+    '{"plan":{"meta":{"version":"1.0","dryRun":false,"safeMode":true,"notes":""},"actions":[{"op":"..."}]},"summary":"..."}',
+    'El summary debe incluir: Objetivo, Acciones, Ubicación exacta, Impacto, Riesgo.',
+    'Si falta información, usa "desconocido".',
+    'No ejecutes acciones. Solo planifica.'
+  ].join('\n');
+  var user = [
+    'INSTRUCCIÓN:',
+    prompt,
+    '',
+    'FLAGS:',
+    JSON.stringify(flags || {}),
+    '',
+    'PLAN_ACTUAL:',
+    currentPlan ? JSON.stringify(currentPlan) : 'null',
+    '',
+    'CONTEXTO:',
+    JSON.stringify(context)
+  ].join('\n');
+  return {
+    model: 'gpt-4o-mini',
+    temperature: 0.2,
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: user }
+    ]
+  };
+}
+
+function callAiEndpoint_(endpoint, apiKey, payload) {
+  var url = endpoint || 'https://api.openai.com/v1/chat/completions';
+  try {
+    var response = UrlFetchApp.fetch(url, {
+      method: 'post',
+      contentType: 'application/json',
+      headers: { Authorization: 'Bearer ' + apiKey },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+    var code = response.getResponseCode();
+    var text = response.getContentText();
+    if (code < 200 || code >= 300) {
+      return { error: 'Error IA: ' + code + ' ' + text };
+    }
+    return { ok: true, text: text };
+  } catch (e) {
+    return { error: 'Error IA: ' + e.message };
+  }
+}
+
+function parseAiPlanResponse_(response) {
+  var raw = response.text;
+  var data = JSON.parse(raw);
+  var content = '';
+  if (data && data.choices && data.choices.length && data.choices[0].message) {
+    content = data.choices[0].message.content;
+  } else if (data && data.plan) {
+    return { plan: data.plan, summary: data.summary || '' };
+  }
+  if (!content) return { error: 'Respuesta IA vacía.' };
+  var jsonStart = content.indexOf('{');
+  var jsonEnd = content.lastIndexOf('}');
+  if (jsonStart === -1 || jsonEnd === -1) return { error: 'Respuesta IA inválida.' };
+  var jsonText = content.substring(jsonStart, jsonEnd + 1);
+  var parsed = JSON.parse(jsonText);
+  if (!parsed.plan || !parsed.plan.actions) return { error: 'Plan IA inválido.' };
+  return { plan: parsed.plan, summary: parsed.summary || '' };
 }
 
 function parseCommand_(prompt) {
