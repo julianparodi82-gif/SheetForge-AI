@@ -57,6 +57,7 @@ function validateAction_(action, flags) {
     if (!sheet) {
       return 'Hoja no encontrada: ' + action.sheetName;
     }
+    normalizeRangeObject_(action, sheet);
     expandPaintTargets_(action, sheet);
   }
   if (requiresRange_(action.op) && !action.rangeA1) {
@@ -104,7 +105,8 @@ function validateAction_(action, flags) {
   if (action.op === 'setBackgrounds' && !Array.isArray(action.colors)) {
     var sheetForColors = sheet || SpreadsheetApp.getActive().getActiveSheet();
     var rangeForColors = sheetForColors.getRange(action.rangeA1);
-    action.colors = buildFillMatrix_(rangeForColors.getNumRows(), rangeForColors.getNumColumns(), '#ffeb3b');
+    var fillColor = action.color || '#ffeb3b';
+    action.colors = buildFillMatrix_(rangeForColors.getNumRows(), rangeForColors.getNumColumns(), fillColor);
   }
   if (action.op === 'setTextRotation' && action.rotation === undefined) {
     action.rotation = 0;
@@ -257,6 +259,21 @@ function expandPaintTargets_(action, sheet) {
   }
   if (action.paintTarget === 'sheet' || action.paintSheet) {
     action.rangeA1 = sheet.getDataRange().getA1Notation();
+  }
+}
+
+function normalizeRangeObject_(action, sheet) {
+  if (!action || !sheet || action.rangeA1 || !action.range) return;
+  var rangeObj = action.range;
+  if (rangeObj && rangeObj.startRow !== undefined && rangeObj.endRow !== undefined &&
+      rangeObj.startColumn !== undefined && rangeObj.endColumn !== undefined) {
+    var startRow = rangeObj.startRow + 1;
+    var startColumn = rangeObj.startColumn + 1;
+    var numRows = rangeObj.endRow - rangeObj.startRow;
+    var numColumns = rangeObj.endColumn - rangeObj.startColumn;
+    if (numRows > 0 && numColumns > 0) {
+      action.rangeA1 = sheet.getRange(startRow, startColumn, numRows, numColumns).getA1Notation();
+    }
   }
 }
 

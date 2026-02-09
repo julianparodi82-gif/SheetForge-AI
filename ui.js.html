@@ -173,6 +173,33 @@
     }).scanProjectAndUpdateContext({ mode });
   });
 
+  document.getElementById('btnCopyPlan').addEventListener('click', function() {
+    var planText = document.getElementById('planJson').innerText || '';
+    if (!planText.trim()) {
+      setStatus('No hay contenido para copiar.', true);
+      return;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(planText).then(function() {
+        setStatus('Plan copiado al portapapeles.', false);
+      }).catch(function() {
+        setStatus('No se pudo copiar el plan.', true);
+      });
+      return;
+    }
+    var temp = document.createElement('textarea');
+    temp.value = planText;
+    document.body.appendChild(temp);
+    temp.select();
+    try {
+      document.execCommand('copy');
+      setStatus('Plan copiado al portapapeles.', false);
+    } catch (e) {
+      setStatus('No se pudo copiar el plan.', true);
+    }
+    document.body.removeChild(temp);
+  });
+
   document.getElementById('btnClearLogs').addEventListener('click', function() {
     setStatus('Limpiando registros...', false);
     google.script.run.withSuccessHandler(function(result) {

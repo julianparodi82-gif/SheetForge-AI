@@ -17,6 +17,7 @@
       .buttons { justify-content: center; gap: 18px; }
       .panel { border: 1px solid #c8e6c9; padding: 8px; border-radius: 10px; margin: 10px 0; background: #ffffff; }
       .panel summary { cursor: pointer; font-weight: 600; color: #1b5e20; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+      .panel summary .summary-actions { display: inline-flex; align-items: center; gap: 6px; }
       .panel summary::-webkit-details-marker { display: none; }
       .panel summary::after { content: '▸'; font-size: 14px; color: #2e7d32; transition: transform 0.2s ease; }
       .panel[open] summary::after { transform: rotate(90deg); }
@@ -71,7 +72,12 @@
         </div>
       </details>
       <details class="panel tooltip tooltip-top" data-tooltip="Plan técnico en JSON con explicación integrada línea por línea." open>
-        <summary>Plan JSON</summary>
+        <summary>
+          <span>Plan JSON</span>
+          <span class="summary-actions">
+            <button id="btnCopyPlan" class="tertiary tooltip" type="button" data-tooltip="Copiar todo el Plan JSON">Copiar</button>
+          </span>
+        </summary>
         <div class="panel-content">
           <pre id="planJson" class="scrollable"></pre>
         </div>
