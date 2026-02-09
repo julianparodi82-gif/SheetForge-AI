@@ -1,6 +1,10 @@
 var ALLOWED_OPS = [
   'setValue', 'setValues', 'setFormula', 'setFormulas', 'setBackground', 'setBackgrounds',
   'setBackgroundColor',
+  'paintCell', 'paintRow', 'paintColumn', 'paintSheet',
+  'moveCells', 'moveRows', 'moveColumns',
+  'copyCells', 'copyRows', 'copyColumns',
+  'createFormula', 'dragFormula', 'fillFormula',
   'setFontColor', 'setFontWeight', 'setFontSize', 'setFontFamily', 'setFontStyle', 'setFontLine',
   'setHorizontalAlignment', 'setVerticalAlignment', 'setWrap', 'setBorder', 'setBorders',
   'setTextRotation',
@@ -18,9 +22,7 @@ function validatePlan_(plan, flags) {
   }
   for (var i = 0; i < plan.actions.length; i++) {
     var action = plan.actions[i];
-    if (action && action.op === 'setBackgroundColor') {
-      action.op = 'setBackground';
-    }
+    normalizeAction_(action);
     if (!action.op || ALLOWED_OPS.indexOf(action.op) === -1) {
       return 'Operación no permitida: ' + action.op + ' (no está en whitelist)';
     }
@@ -55,6 +57,7 @@ function validateAction_(action, flags) {
     if (!sheet) {
       return 'Hoja no encontrada: ' + action.sheetName;
     }
+    expandPaintTargets_(action, sheet);
   }
   if (requiresRange_(action.op) && !action.rangeA1) {
     var activeRange = SpreadsheetApp.getActive().getActiveRange();
@@ -167,10 +170,71 @@ function validateAction_(action, flags) {
   return null;
 }
 
+function normalizeAction_(action) {
+  if (!action || !action.op) return;
+  if (action.op === 'setBackgroundColor') {
+    action.op = 'setBackground';
+    return;
+  }
+  if (action.op === 'moveCells' || action.op === 'moveRows' || action.op === 'moveColumns') {
+    action.op = 'moveRange';
+    return;
+  }
+  if (action.op === 'copyCells' || action.op === 'copyRows' || action.op === 'copyColumns') {
+    action.op = 'copyRange';
+    return;
+  }
+  if (action.op === 'createFormula') {
+    action.op = 'setFormula';
+    return;
+  }
+  if (action.op === 'dragFormula' || action.op === 'fillFormula') {
+    action.op = Array.isArray(action.formulas) ? 'setFormulas' : 'setFormula';
+    return;
+  }
+  if (action.op === 'paintCell') {
+    action.op = 'setBackground';
+    if (action.cell && !action.rangeA1) {
+      action.rangeA1 = action.cell;
+    }
+    return;
+  }
+  if (action.op === 'paintRow' || action.op === 'paintColumn' || action.op === 'paintSheet') {
+    if (action.op === 'paintRow') {
+      action.paintTarget = 'row';
+    }
+    if (action.op === 'paintColumn') {
+      action.paintTarget = 'column';
+    }
+    if (action.op === 'paintSheet') {
+      action.paintTarget = 'sheet';
+    }
+    action.op = 'setBackground';
+  }
+}
+
+function expandPaintTargets_(action, sheet) {
+  if (!action || !sheet || action.op !== 'setBackground') return;
+  if (action.rangeA1) return;
+  if (action.rowIndex) {
+    action.rangeA1 = sheet.getRange(action.rowIndex, 1, 1, sheet.getMaxColumns()).getA1Notation();
+    return;
+  }
+  if (action.columnIndex) {
+    action.rangeA1 = sheet.getRange(1, action.columnIndex, sheet.getMaxRows(), 1).getA1Notation();
+    return;
+  }
+  if (action.paintTarget === 'sheet' || action.paintSheet) {
+    action.rangeA1 = sheet.getDataRange().getA1Notation();
+  }
+}
+
 function requiresSheet_(op) {
   return [
     'setValue', 'setValues', 'setFormula', 'setFormulas', 'setBackground', 'setBackgrounds',
-    'setBackgroundColor',
+    'setBackgroundColor', 'paintCell', 'paintRow', 'paintColumn', 'paintSheet',
+    'moveCells', 'moveRows', 'moveColumns', 'copyCells', 'copyRows', 'copyColumns',
+    'createFormula', 'dragFormula', 'fillFormula',
     'setFontColor', 'setFontWeight', 'setFontSize', 'setFontFamily', 'setFontStyle', 'setFontLine',
     'setHorizontalAlignment', 'setVerticalAlignment', 'setWrap', 'setBorder', 'setBorders',
     'setTextRotation',
@@ -186,7 +250,7 @@ function requiresSheet_(op) {
 function requiresRange_(op) {
   return [
     'setValue', 'setValues', 'setFormula', 'setFormulas', 'setBackground', 'setBackgrounds',
-    'setBackgroundColor',
+    'setBackgroundColor', 'paintCell', 'createFormula', 'dragFormula', 'fillFormula',
     'setFontColor', 'setFontWeight', 'setFontSize', 'setFontFamily', 'setFontStyle', 'setFontLine',
     'setHorizontalAlignment', 'setVerticalAlignment', 'setWrap', 'setBorder', 'setBorders',
     'setTextRotation',
