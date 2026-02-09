@@ -91,7 +91,8 @@ function buildAiPayload_(prompt, flags, currentPlan, context) {
     'Formato esperado:',
     '{"plan":{"meta":{"version":"1.0","dryRun":false,"safeMode":true,"notes":""},"actions":[{"op":"..."}]},"summary":"..."}',
     'El summary debe incluir: Objetivo, Acciones, Ubicación exacta, Impacto, Resultado esperado.',
-    'Si falta información, usa "desconocido".',
+    'Si falta información, usa valores probables basados en el contexto sin inventar (ej.: color por defecto #ffeb3b, ubicación usando la celda activa o el rango actual).',
+    'Completa bordes, colores y ubicaciones con valores razonables cuando no se indiquen explícitamente.',
     'No ejecutes acciones. Solo planifica.'
   ].join('\n');
   var user = [

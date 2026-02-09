@@ -69,6 +69,14 @@ function validateAction_(action, flags) {
       return 'Rango inválido: falta rangeA1';
     }
   }
+  if (action.op === 'setFormula' && !action.formula) {
+    action.formula = '';
+  }
+  if (action.op === 'setFormulas' && !Array.isArray(action.formulas)) {
+    var sheetForFormulas = sheet || SpreadsheetApp.getActive().getActiveSheet();
+    var rangeForFormulas = sheetForFormulas.getRange(action.rangeA1);
+    action.formulas = buildFillMatrix_(rangeForFormulas.getNumRows(), rangeForFormulas.getNumColumns(), '');
+  }
   if (action.op === 'setValues' && !Array.isArray(action.values)) {
     return 'Rango inválido: falta values';
   }
@@ -94,10 +102,12 @@ function validateAction_(action, flags) {
     action.color = '#ffeb3b';
   }
   if (action.op === 'setBackgrounds' && !Array.isArray(action.colors)) {
-    return 'Color inválido: falta colors';
+    var sheetForColors = sheet || SpreadsheetApp.getActive().getActiveSheet();
+    var rangeForColors = sheetForColors.getRange(action.rangeA1);
+    action.colors = buildFillMatrix_(rangeForColors.getNumRows(), rangeForColors.getNumColumns(), '#ffeb3b');
   }
   if (action.op === 'setTextRotation' && action.rotation === undefined) {
-    return 'Formato inválido: falta rotation';
+    action.rotation = 0;
   }
   if (action.op === 'createPivotTable') {
     if (!action.sourceA1 || !action.targetA1) {
@@ -110,13 +120,34 @@ function validateAction_(action, flags) {
     }
   }
   if (action.op === 'setFontFamily' && !action.family) {
-    return 'Formato inválido: falta family';
+    action.family = 'Arial';
   }
   if (action.op === 'setFontStyle' && !action.style) {
-    return 'Formato inválido: falta style';
+    action.style = 'normal';
   }
   if (action.op === 'setFontLine' && !action.line) {
-    return 'Formato inválido: falta line';
+    action.line = 'none';
+  }
+  if (action.op === 'setFontColor' && !action.color) {
+    action.color = '#000000';
+  }
+  if (action.op === 'setFontWeight' && !action.weight) {
+    action.weight = 'normal';
+  }
+  if (action.op === 'setFontSize' && !action.size) {
+    action.size = 10;
+  }
+  if (action.op === 'setHorizontalAlignment' && !action.alignment) {
+    action.alignment = 'left';
+  }
+  if (action.op === 'setVerticalAlignment' && !action.alignment) {
+    action.alignment = 'top';
+  }
+  if (action.op === 'setWrap' && action.wrap === undefined) {
+    action.wrap = false;
+  }
+  if (action.op === 'setNumberFormat' && !action.format) {
+    action.format = '@';
   }
   if (action.op === 'copyPasteValues') {
     if (!action.sourceA1 || !action.targetA1) {
@@ -276,4 +307,16 @@ function rangeIsLarge_(rangeA1) {
   } catch (e) {
     return true;
   }
+}
+
+function buildFillMatrix_(rows, cols, value) {
+  var matrix = [];
+  for (var r = 0; r < rows; r++) {
+    var row = [];
+    for (var c = 0; c < cols; c++) {
+      row.push(value);
+    }
+    matrix.push(row);
+  }
+  return matrix;
 }
