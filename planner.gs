@@ -90,7 +90,7 @@ function buildAiPayload_(prompt, flags, currentPlan, context) {
     'Responde SOLO con JSON válido.',
     'Formato esperado:',
     '{"plan":{"meta":{"version":"1.0","dryRun":false,"safeMode":true,"notes":""},"actions":[{"op":"..."}]},"summary":"..."}',
-    'El summary debe incluir: Objetivo, Acciones, Ubicación exacta, Impacto, Riesgo.',
+    'El summary debe incluir: Objetivo, Acciones, Ubicación exacta, Impacto, Resultado esperado.',
     'Si falta información, usa "desconocido".',
     'No ejecutes acciones. Solo planifica.'
   ].join('\n');
@@ -234,7 +234,7 @@ function buildSummary_(plan) {
   });
   lines.push('Impacto:');
   lines.push(plan.actions.map(function (a) { return a.op; }).join(', '));
-  lines.push('Riesgo:');
-  lines.push(plan.meta.safeMode ? 'safeMode activo' : 'safeMode desactivado');
+  lines.push('Resultado esperado:');
+  lines.push('Se ejecutarán las acciones listadas respetando la configuración actual del plan.');
   return lines.join('\n');
 }

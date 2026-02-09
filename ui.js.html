@@ -27,13 +27,44 @@
   function renderPlan(plan, summary) {
     state.plan = plan;
     state.summary = summary || '';
-    document.getElementById('planJson').textContent = JSON.stringify(plan, null, 2);
+    document.getElementById('planJson').textContent = formatPlanWithExplanation(plan);
     document.getElementById('summary').textContent = summary || '';
+  }
+
+  function formatPlanWithExplanation(plan) {
+    if (!plan) return '';
+    var jsonLines = JSON.stringify(plan, null, 2).split('\n');
+    var explanation = buildPlanExplanation(plan);
+    return jsonLines.join('\n') + '\n\nExplicación línea por línea:\n' + explanation.join('\n');
+  }
+
+  function buildPlanExplanation(plan) {
+    var lines = [];
+    lines.push('- plan: contenedor del plan que se ejecutará.');
+    if (plan.meta) {
+      lines.push('- meta.version: versión del formato del plan.');
+      lines.push('- meta.dryRun: indica si la ejecución será solo simulada.');
+      lines.push('- meta.safeMode: indica si se restringen operaciones de alto impacto.');
+      lines.push('- meta.notes: notas adicionales del plan.');
+    }
+    if (Array.isArray(plan.actions)) {
+      lines.push('- actions: lista de acciones que se ejecutarán en orden.');
+      plan.actions.forEach(function(action, index) {
+        var parts = [];
+        if (action.op) parts.push('operación "' + action.op + '"');
+        if (action.sheetName) parts.push('hoja "' + action.sheetName + '"');
+        var range = action.rangeA1 || action.sourceA1 || action.targetA1 || action.cell;
+        if (range) parts.push('rango "' + range + '"');
+        var detail = parts.length ? parts.join(', ') : 'acción definida por el plan.';
+        lines.push('- actions[' + index + ']: se ejecutará ' + detail + '.');
+      });
+    }
+    return lines;
   }
 
   function refreshLogs() {
     google.script.run.withSuccessHandler(function(logs) {
-      document.getElementById('logs').textContent = logs.join('\n');
+      document.getElementById('logs').textContent = logs.join('\n\n');
     }).getLastLogs(10);
   }
 
@@ -113,6 +144,18 @@
       setStatus(result.message, false);
       refreshLogs();
     }).scanProjectAndUpdateContext({ mode });
+  });
+
+  document.getElementById('btnClearLogs').addEventListener('click', function() {
+    setStatus('Limpiando registros...', false);
+    google.script.run.withSuccessHandler(function(result) {
+      if (result && result.error) {
+        setStatus(result.error, true);
+        return;
+      }
+      setStatus('Registros limpiados.', false);
+      refreshLogs();
+    }).clearLogs();
   });
 
   setMode('IDLE');
