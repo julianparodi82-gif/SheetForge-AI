@@ -34,11 +34,15 @@
   function formatPlanWithExplanation(plan) {
     if (!plan) return '';
     var jsonLines = JSON.stringify(plan, null, 2).split('\n');
-    return jsonLines.map(function(line) {
+    var formattedLines = [];
+    jsonLines.forEach(function(line) {
       var explanation = explainJsonLine(line, plan);
-      if (!explanation) return escapeHtml(line);
-      return escapeHtml(line) + ' <span class="line-explain">' + escapeHtml(explanation) + '</span>';
-    }).join('\n');
+      if (explanation) {
+        formattedLines.push('<span class="line-explain">' + escapeHtml(explanation) + '</span>');
+      }
+      formattedLines.push(escapeHtml(line));
+    });
+    return formattedLines.join('\n');
   }
 
   function explainJsonLine(line) {

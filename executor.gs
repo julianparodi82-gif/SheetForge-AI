@@ -16,14 +16,30 @@ function applyPlan(plan, flags) {
       affected.push(action.sheetName || 'spreadsheet');
     }
     var duration = Date.now() - start;
-    logEvent_('apply', '', plan, 'ok', 'Aplicado', affected.join(', '), duration);
+    var summary = buildActionSummary_(plan.actions);
+    logEvent_('apply', '', plan, 'ok', summary, affected.join(', '), duration);
     updateContextAfterCommit_(plan.actions);
     return { message: 'Aplicado correctamente.' };
   } catch (e) {
     var durationErr = Date.now() - start;
-    logEvent_('apply', '', plan, 'error', e.message, affected.join(', '), durationErr);
+    logEvent_('apply', '', plan, 'error', 'Error al aplicar: ' + e.message, affected.join(', '), durationErr);
     return { error: e.message };
   }
+}
+
+function buildActionSummary_(actions) {
+  if (!Array.isArray(actions) || actions.length === 0) {
+    return 'Aplicado: sin acciones detalladas.';
+  }
+  var parts = actions.slice(0, 3).map(function(action) {
+    var op = action.op || 'acción';
+    var sheet = action.sheetName ? ' en ' + action.sheetName : '';
+    var range = action.rangeA1 || action.targetA1 || action.sourceA1 || action.cell;
+    var location = range ? ' (' + range + ')' : '';
+    return op + sheet + location;
+  });
+  var extra = actions.length > 3 ? ' y ' + (actions.length - 3) + ' más' : '';
+  return 'Aplicado: ' + parts.join('; ') + extra + '.';
 }
 
 function executeAction_(action) {

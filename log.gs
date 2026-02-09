@@ -24,7 +24,7 @@ function getLastLogs(n) {
     var timestamp = row[0] instanceof Date
       ? Utilities.formatDate(row[0], Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm')
       : row[0];
-    var status = row[4] || 'sin estado';
+    var status = normalizeLogStatus_(row[4]);
     var message = row[5] || 'sin detalles';
     return 'Fecha: ' + timestamp + '\nEstado: ' + status + '\nMensaje: ' + message;
   }).reverse();
@@ -35,4 +35,12 @@ function clearLogs() {
   if (!sheet || sheet.getLastRow() < 2) return { ok: true };
   sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).clearContent();
   return { ok: true };
+}
+
+function normalizeLogStatus_(status) {
+  if (!status) return 'sin estado';
+  var value = status.toString().toLowerCase();
+  if (value === 'ok') return 'Aplicado';
+  if (value === 'error') return 'Error';
+  return status;
 }

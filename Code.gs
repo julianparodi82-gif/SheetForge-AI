@@ -2,6 +2,7 @@ function onOpen() {
   SpreadsheetApp.getUi().createMenu('SheetForge AI')
     .addItem('Operador IA', 'showSidebar')
     .addItem('Configuración', 'showConfig')
+    .addItem('Instrucciones', 'showInstructions')
     .addToUi();
 }
 
@@ -20,6 +21,14 @@ function showConfig() {
     .setWidth(420)
     .setHeight(360);
   SpreadsheetApp.getUi().showModalDialog(html, 'Configuración');
+}
+
+function showInstructions() {
+  var html = HtmlService.createTemplateFromFile('instructions')
+    .evaluate()
+    .setWidth(460)
+    .setHeight(520);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Instrucciones');
 }
 
 function include(filename) {
