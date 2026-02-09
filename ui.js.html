@@ -27,39 +27,62 @@
   function renderPlan(plan, summary) {
     state.plan = plan;
     state.summary = summary || '';
-    document.getElementById('planJson').textContent = formatPlanWithExplanation(plan);
+    document.getElementById('planJson').innerHTML = formatPlanWithExplanation(plan);
     document.getElementById('summary').textContent = summary || '';
   }
 
   function formatPlanWithExplanation(plan) {
     if (!plan) return '';
     var jsonLines = JSON.stringify(plan, null, 2).split('\n');
-    var explanation = buildPlanExplanation(plan);
-    return jsonLines.join('\n') + '\n\nExplicación línea por línea:\n' + explanation.join('\n');
+    return jsonLines.map(function(line) {
+      var explanation = explainJsonLine(line, plan);
+      if (!explanation) return escapeHtml(line);
+      return escapeHtml(line) + ' <span class="line-explain">' + escapeHtml(explanation) + '</span>';
+    }).join('\n');
   }
 
-  function buildPlanExplanation(plan) {
-    var lines = [];
-    lines.push('- plan: contenedor del plan que se ejecutará.');
-    if (plan.meta) {
-      lines.push('- meta.version: versión del formato del plan.');
-      lines.push('- meta.dryRun: indica si la ejecución será solo simulada.');
-      lines.push('- meta.safeMode: indica si se restringen operaciones de alto impacto.');
-      lines.push('- meta.notes: notas adicionales del plan.');
-    }
-    if (Array.isArray(plan.actions)) {
-      lines.push('- actions: lista de acciones que se ejecutarán en orden.');
-      plan.actions.forEach(function(action, index) {
-        var parts = [];
-        if (action.op) parts.push('operación "' + action.op + '"');
-        if (action.sheetName) parts.push('hoja "' + action.sheetName + '"');
-        var range = action.rangeA1 || action.sourceA1 || action.targetA1 || action.cell;
-        if (range) parts.push('rango "' + range + '"');
-        var detail = parts.length ? parts.join(', ') : 'acción definida por el plan.';
-        lines.push('- actions[' + index + ']: se ejecutará ' + detail + '.');
-      });
-    }
-    return lines;
+  function explainJsonLine(line) {
+    var keyMatch = line.match(/"([^"]+)"\s*:/);
+    if (!keyMatch) return '';
+    var key = keyMatch[1];
+    var explanations = {
+      plan: 'Contiene todo el plan que se ejecutará.',
+      meta: 'Configuración general del plan.',
+      version: 'Versión del formato del plan.',
+      dryRun: 'Si está activado, solo simula sin aplicar cambios.',
+      safeMode: 'Si está activado, limita acciones riesgosas.',
+      notes: 'Notas adicionales para el plan.',
+      actions: 'Lista ordenada de acciones a ejecutar.',
+      op: 'Tipo de acción que se ejecutará.',
+      sheetName: 'Hoja de cálculo donde se aplica la acción.',
+      rangeA1: 'Rango de celdas afectado.',
+      sourceA1: 'Rango origen para copiar o mover.',
+      targetA1: 'Rango destino para copiar o mover.',
+      cell: 'Celda específica de destino.',
+      color: 'Color que se aplicará.',
+      values: 'Valores que se escribirán.',
+      formula: 'Fórmula que se aplicará.',
+      formulas: 'Fórmulas que se aplicarán en bloque.',
+      rowIndex: 'Fila inicial donde se ejecuta la acción.',
+      numRows: 'Cantidad de filas afectadas.',
+      columnIndex: 'Columna inicial donde se ejecuta la acción.',
+      numColumns: 'Cantidad de columnas afectadas.',
+      fileId: 'Identificador del archivo en Drive.',
+      width: 'Ancho del elemento en píxeles.',
+      height: 'Alto del elemento en píxeles.',
+      name: 'Nuevo nombre solicitado.',
+      filename: 'Nombre del archivo de salida.'
+    };
+    return explanations[key] || '';
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   function refreshLogs() {

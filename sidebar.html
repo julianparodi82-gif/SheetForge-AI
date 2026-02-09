@@ -7,7 +7,7 @@
       .container { padding: 14px; }
       h2 { color: #1b5e20; margin: 0 0 12px; font-size: 18px; }
       textarea { width: 100%; min-height: 120px; padding: 10px; border: 1px solid #a5d6a7; border-radius: 10px; background: #fff; }
-      .prompt-input { max-width: 520px; margin: 0; display: block; }
+      .prompt-input { width: 100%; margin: 0; display: block; }
       button { padding: 10px 16px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; }
       button.primary { background: #1b5e20; color: #fff; box-shadow: 0 2px 6px rgba(27,94,32,0.2); }
       button.secondary { background: #c8e6c9; color: #1b5e20; }
@@ -33,7 +33,11 @@
       .tooltip:hover::after { opacity: 1; transform: translateY(0); }
       .tooltip-top::after { left: 50%; top: auto; bottom: 26px; transform: translate(-50%, -4px); }
       .tooltip-top:hover::after { transform: translate(-50%, -8px); }
+      .panel.tooltip { display: block; }
+      .panel.tooltip::after { left: 50%; top: auto; bottom: calc(100% + 6px); transform: translate(-50%, -4px); }
+      .panel.tooltip:hover::after { opacity: 1; transform: translate(-50%, -8px); }
       .logs-actions { display: flex; justify-content: center; margin-top: 8px; }
+      .line-explain { background: #fff8c4; color: #5a4b00; padding: 0 4px; margin-left: 6px; border-radius: 4px; display: inline-block; }
     </style>
   </head>
   <body>
@@ -46,12 +50,12 @@
       </div>
       <div class="row field-group">
         <label class="tooltip" data-tooltip="Cuando está activado, solo genera el plan sin aplicar cambios. Cuando está desactivado, permite aplicar.">
-          <input type="checkbox" id="dryRun" checked> Simulación (Dry Run)
+          <input type="checkbox" id="dryRun"> Simulación (Dry Run)
         </label>
         <label class="tooltip" data-tooltip="Cuando está activado, bloquea operaciones riesgosas o masivas. Cuando está desactivado, permite acciones avanzadas.">
-          <input type="checkbox" id="safeMode" checked> Modo seguro
+          <input type="checkbox" id="safeMode"> Modo seguro
         </label>
-        <label class="tooltip" data-tooltip="Rápido: muestreo liviano. Completo: más detalle y valores.">
+        <label class="tooltip" data-tooltip="Rápido: analiza estructura y rangos principales con un muestreo liviano. Completo: revisa más detalle, valores y formatos para dar un contexto más preciso.">
           Modo de escaneo
           <select id="scanMode">
             <option value="quick">Rápido</option>
@@ -60,26 +64,26 @@
         </label>
         <button id="btnScan" class="secondary">Escanear proyecto</button>
       </div>
-      <details class="panel" open>
-        <summary><span class="tooltip tooltip-top" data-tooltip="Resumen en lenguaje profesional de lo que se ejecutará, con objetivos, acciones y resultados esperados.">Resumen profesional</span></summary>
+      <details class="panel tooltip tooltip-top" data-tooltip="Resumen en lenguaje profesional de lo que se ejecutará, con objetivos, acciones y resultados esperados." open>
+        <summary>Resumen profesional</summary>
         <div class="panel-content">
           <pre id="summary" class="scrollable"></pre>
         </div>
       </details>
-      <details class="panel" open>
-        <summary><span class="tooltip tooltip-top" data-tooltip="Plan técnico en JSON y explicación línea por línea del funcionamiento.">Plan JSON</span></summary>
+      <details class="panel tooltip tooltip-top" data-tooltip="Plan técnico en JSON con explicación integrada línea por línea." open>
+        <summary>Plan JSON</summary>
         <div class="panel-content">
           <pre id="planJson" class="scrollable"></pre>
         </div>
       </details>
-      <details class="panel" open>
-        <summary><span class="tooltip tooltip-top" data-tooltip="Estado actual de la solicitud y mensajes de proceso.">Estado</span></summary>
+      <details class="panel tooltip tooltip-top" data-tooltip="Estado actual de la solicitud y mensajes de proceso." open>
+        <summary>Estado</summary>
         <div class="panel-content">
           <div id="status" class="status"></div>
         </div>
       </details>
-      <details class="panel" open>
-        <summary><span class="tooltip tooltip-top" data-tooltip="Historial reciente de operaciones ejecutadas en esta hoja.">Últimos registros</span></summary>
+      <details class="panel tooltip tooltip-top" data-tooltip="Historial reciente de operaciones ejecutadas en esta hoja." open>
+        <summary>Últimos registros</summary>
         <div class="panel-content">
           <pre id="logs" class="scrollable"></pre>
           <div class="logs-actions">
