@@ -7,10 +7,11 @@
       .container { padding: 14px; }
       h2 { color: #1b5e20; margin: 0 0 12px; font-size: 18px; }
       textarea { width: 100%; min-height: 120px; padding: 10px; border: 1px solid #a5d6a7; border-radius: 10px; background: #fff; }
-      .prompt-input { max-width: 420px; margin: 0 auto; display: block; }
+      .prompt-input { max-width: 520px; margin: 0; display: block; }
       button { padding: 10px 16px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; }
       button.primary { background: #1b5e20; color: #fff; box-shadow: 0 2px 6px rgba(27,94,32,0.2); }
       button.secondary { background: #c8e6c9; color: #1b5e20; }
+      button.tertiary { background: #edf7ed; color: #1b5e20; font-weight: 500; padding: 6px 10px; font-size: 12px; }
       button:disabled { background: #e0e0e0; color: #888; cursor: not-allowed; }
       .row { display: flex; gap: 12px; margin: 10px 0; align-items: center; flex-wrap: wrap; }
       .buttons { justify-content: center; gap: 18px; }
@@ -28,8 +29,11 @@
       .scrollable { max-height: 220px; overflow: auto; }
       .field-group { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
       .tooltip { position: relative; display: inline-flex; align-items: center; gap: 6px; }
-      .tooltip::after { content: attr(data-tooltip); position: absolute; left: 0; top: 24px; background: #1b5e20; color: #fff; padding: 6px 8px; border-radius: 8px; font-size: 11px; line-height: 1.3; min-width: 180px; max-width: 220px; opacity: 0; pointer-events: none; transform: translateY(4px); transition: opacity 0.2s ease, transform 0.2s ease; z-index: 10; }
+      .tooltip::after { content: attr(data-tooltip); position: absolute; left: 0; top: 24px; background: #1b5e20; color: #fff; padding: 6px 8px; border-radius: 8px; font-size: 11px; line-height: 1.3; min-width: 180px; max-width: 240px; opacity: 0; pointer-events: none; transform: translateY(4px); transition: opacity 0.2s ease, transform 0.2s ease; z-index: 10; text-align: center; }
       .tooltip:hover::after { opacity: 1; transform: translateY(0); }
+      .tooltip-top::after { left: 50%; top: auto; bottom: 26px; transform: translate(-50%, -4px); }
+      .tooltip-top:hover::after { transform: translate(-50%, -8px); }
+      .logs-actions { display: flex; justify-content: center; margin-top: 8px; }
     </style>
   </head>
   <body>
@@ -41,10 +45,10 @@
         <button id="btnApply" class="secondary" disabled>Aplicar</button>
       </div>
       <div class="row field-group">
-        <label class="tooltip" data-tooltip="En true, no aplica cambios; solo genera el plan. En false, permite aplicar.">
+        <label class="tooltip" data-tooltip="Cuando está activado, solo genera el plan sin aplicar cambios. Cuando está desactivado, permite aplicar.">
           <input type="checkbox" id="dryRun" checked> Simulación (Dry Run)
         </label>
-        <label class="tooltip" data-tooltip="En true, bloquea operaciones riesgosas o masivas. En false, las permite.">
+        <label class="tooltip" data-tooltip="Cuando está activado, bloquea operaciones riesgosas o masivas. Cuando está desactivado, permite acciones avanzadas.">
           <input type="checkbox" id="safeMode" checked> Modo seguro
         </label>
         <label class="tooltip" data-tooltip="Rápido: muestreo liviano. Completo: más detalle y valores.">
@@ -57,27 +61,30 @@
         <button id="btnScan" class="secondary">Escanear proyecto</button>
       </div>
       <details class="panel" open>
-        <summary>Resumen profesional</summary>
+        <summary><span class="tooltip tooltip-top" data-tooltip="Resumen en lenguaje profesional de lo que se ejecutará, con objetivos, acciones y resultados esperados.">Resumen profesional</span></summary>
         <div class="panel-content">
           <pre id="summary" class="scrollable"></pre>
         </div>
       </details>
       <details class="panel" open>
-        <summary>Plan JSON</summary>
+        <summary><span class="tooltip tooltip-top" data-tooltip="Plan técnico en JSON y explicación línea por línea del funcionamiento.">Plan JSON</span></summary>
         <div class="panel-content">
           <pre id="planJson" class="scrollable"></pre>
         </div>
       </details>
       <details class="panel" open>
-        <summary>Estado</summary>
+        <summary><span class="tooltip tooltip-top" data-tooltip="Estado actual de la solicitud y mensajes de proceso.">Estado</span></summary>
         <div class="panel-content">
           <div id="status" class="status"></div>
         </div>
       </details>
       <details class="panel" open>
-        <summary>Últimos registros</summary>
+        <summary><span class="tooltip tooltip-top" data-tooltip="Historial reciente de operaciones ejecutadas en esta hoja.">Últimos registros</span></summary>
         <div class="panel-content">
           <pre id="logs" class="scrollable"></pre>
+          <div class="logs-actions">
+            <button id="btnClearLogs" class="tertiary" type="button">Limpiar registros</button>
+          </div>
         </div>
       </details>
     </div>
