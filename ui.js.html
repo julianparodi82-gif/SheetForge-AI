@@ -35,10 +35,12 @@
     if (!plan) return '';
     var jsonLines = JSON.stringify(plan, null, 2).split('\n');
     var formattedLines = [];
+    var stepIndex = 1;
     jsonLines.forEach(function(line) {
       var explanation = explainJsonLine(line, plan);
       if (explanation) {
-        formattedLines.push('<span class="line-explain">' + escapeHtml(explanation) + '</span>');
+        formattedLines.push('<span class="line-explain">Paso ' + stepIndex + ': ' + escapeHtml(explanation) + '</span>');
+        stepIndex += 1;
       }
       formattedLines.push(escapeHtml(line));
     });

@@ -93,6 +93,7 @@ function buildAiPayload_(prompt, flags, currentPlan, context) {
     'El summary debe incluir: Objetivo, Acciones, Ubicación exacta, Impacto, Resultado esperado.',
     'Si falta información, usa valores probables basados en el contexto sin inventar (ej.: color por defecto #ffeb3b, ubicación usando la celda activa o el rango actual).',
     'Completa bordes, colores y ubicaciones con valores razonables cuando no se indiquen explícitamente.',
+    'Respeta exactamente los valores proporcionados por el usuario (color, ubicación, bordes, etc.) y evita cambiarlos.',
     'No ejecutes acciones. Solo planifica.'
   ].join('\n');
   var user = [

@@ -26,7 +26,9 @@ function getLastLogs(n) {
       : row[0];
     var status = normalizeLogStatus_(row[4]);
     var message = row[5] || 'sin detalles';
-    return 'Fecha: ' + timestamp + '\nEstado: ' + status + '\nMensaje: ' + message;
+    var summary = buildLogSummary_(row[3]);
+    var summaryText = summary ? '\nResumen: ' + summary : '';
+    return 'Fecha: ' + timestamp + '\nEstado: ' + status + '\nMensaje: ' + message + summaryText;
   }).reverse();
 }
 
@@ -43,4 +45,15 @@ function normalizeLogStatus_(status) {
   if (value === 'ok') return 'Aplicado';
   if (value === 'error') return 'Error';
   return status;
+}
+
+function buildLogSummary_(planJson) {
+  if (!planJson) return '';
+  try {
+    var plan = JSON.parse(planJson);
+    if (!plan || !plan.actions) return '';
+    return buildSummary_(plan);
+  } catch (e) {
+    return '';
+  }
 }
