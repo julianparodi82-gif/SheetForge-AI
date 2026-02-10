@@ -108,6 +108,11 @@ function validateAction_(action, flags) {
     var fillColor = action.color || '#ffeb3b';
     action.colors = buildFillMatrix_(rangeForColors.getNumRows(), rangeForColors.getNumColumns(), fillColor);
   }
+  if (action.op === 'setBackgrounds' && Array.isArray(action.colors) && action.rangeA1) {
+    var sheetForBgMatrix = sheet || SpreadsheetApp.getActive().getActiveSheet();
+    var rangeForBgMatrix = sheetForBgMatrix.getRange(action.rangeA1);
+    action.colors = normalizeColorMatrix_(action.colors, rangeForBgMatrix.getNumRows(), rangeForBgMatrix.getNumColumns(), action.color || '#ffeb3b');
+  }
   if (action.op === 'setTextRotation' && action.rotation === undefined) {
     action.rotation = 0;
   }
@@ -336,4 +341,44 @@ function buildFillMatrix_(rows, cols, value) {
     matrix.push(row);
   }
   return matrix;
+}
+
+function normalizeColorMatrix_(inputColors, rows, cols, fallbackColor) {
+  var safeFallback = fallbackColor || '#ffeb3b';
+  if (!Array.isArray(inputColors) || rows <= 0 || cols <= 0) {
+    return buildFillMatrix_(rows, cols, safeFallback);
+  }
+
+  var is2D = Array.isArray(inputColors[0]);
+  if (is2D) {
+    var matrix = [];
+    for (var r = 0; r < rows; r++) {
+      var srcRow = inputColors[Math.min(r, inputColors.length - 1)] || [];
+      var newRow = [];
+      for (var c = 0; c < cols; c++) {
+        var srcCell = srcRow[Math.min(c, srcRow.length - 1)];
+        newRow.push((typeof srcCell === 'string' && /^#[0-9a-fA-F]{6}$/.test(srcCell)) ? srcCell : safeFallback);
+      }
+      matrix.push(newRow);
+    }
+    return matrix;
+  }
+
+  var palette = inputColors.filter(function(color) {
+    return typeof color === 'string' && /^#[0-9a-fA-F]{6}$/.test(color);
+  });
+  if (palette.length === 0) {
+    return buildFillMatrix_(rows, cols, safeFallback);
+  }
+
+  var paletteMatrix = [];
+  for (var pr = 0; pr < rows; pr++) {
+    var paletteRow = [];
+    for (var pc = 0; pc < cols; pc++) {
+      var index = (pr * cols + pc) % palette.length;
+      paletteRow.push(palette[index]);
+    }
+    paletteMatrix.push(paletteRow);
+  }
+  return paletteMatrix;
 }
