@@ -216,32 +216,27 @@ function validateAction_(action, flags) {
 
 function normalizeAction_(action) {
   if (!action || !action.op) return;
+  normalizeCommonActionFields_(action);
   if (action.op === 'setBackgroundColor') {
     action.op = 'setBackground';
-    return;
   }
   if (action.op === 'moveCells' || action.op === 'moveRows' || action.op === 'moveColumns') {
     action.op = 'moveRange';
-    return;
   }
   if (action.op === 'copyCells' || action.op === 'copyRows' || action.op === 'copyColumns') {
     action.op = 'copyRange';
-    return;
   }
   if (action.op === 'createFormula') {
     action.op = 'setFormula';
-    return;
   }
   if (action.op === 'dragFormula' || action.op === 'fillFormula') {
     action.op = Array.isArray(action.formulas) ? 'setFormulas' : 'setFormula';
-    return;
   }
   if (action.op === 'paintCell') {
     action.op = 'setBackground';
     if (action.cell && !action.rangeA1) {
       action.rangeA1 = action.cell;
     }
-    return;
   }
   if (action.op === 'paintRow' || action.op === 'paintColumn' || action.op === 'paintSheet') {
     if (action.op === 'paintRow') {
@@ -254,6 +249,19 @@ function normalizeAction_(action) {
       action.paintTarget = 'sheet';
     }
     action.op = 'setBackground';
+  }
+}
+
+function normalizeCommonActionFields_(action) {
+  if (!action) return;
+  if (!action.rangeA1 && typeof action.range === 'string') {
+    action.rangeA1 = action.range;
+  }
+  if (!action.color && typeof action.backgroundColor === 'string') {
+    action.color = action.backgroundColor;
+  }
+  if (!action.color && typeof action.bgColor === 'string') {
+    action.color = action.bgColor;
   }
 }
 

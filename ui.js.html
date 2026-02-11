@@ -108,7 +108,7 @@
         if (line.indexOf('Estado:') === 0) {
           var status = line.replace('Estado:', '').trim();
           var statusClass = status === 'Aplicado' ? 'log-status-ok' : 'log-status-error';
-          return '<span class="log-label">Estado:</span> <span class="' + statusClass + '">' + escapeHtml(status) + '</span>';
+          return '<span class="' + statusClass + '"><span class="log-label">Estado:</span> ' + escapeHtml(status) + '</span>';
         }
         if (line.indexOf('Mensaje:') === 0) {
           return '<span class="log-label">Mensaje:</span> ' + escapeHtml(line.replace('Mensaje:', '').trim());
