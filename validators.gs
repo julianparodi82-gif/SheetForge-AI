@@ -108,8 +108,11 @@ function validateAction_(action, flags) {
   if (action.op === 'setBackgrounds' && !Array.isArray(action.colors)) {
     var sheetForColors = sheet || SpreadsheetApp.getActive().getActiveSheet();
     var rangeForColors = sheetForColors.getRange(action.rangeA1);
-    var fillColor = action.color || '#ffeb3b';
-    action.colors = buildFillMatrix_(rangeForColors.getNumRows(), rangeForColors.getNumColumns(), fillColor);
+    if (action.color) {
+      action.colors = buildFillMatrix_(rangeForColors.getNumRows(), rangeForColors.getNumColumns(), action.color);
+    } else {
+      action.colors = buildDistinctColorMatrix_(rangeForColors.getNumRows(), rangeForColors.getNumColumns());
+    }
   }
   if (action.op === 'setBackgrounds' && Array.isArray(action.colors) && action.rangeA1) {
     var sheetForBgMatrix = sheet || SpreadsheetApp.getActive().getActiveSheet();
@@ -407,4 +410,20 @@ function normalizeBackgroundRangeFromColors_(action, sheet) {
   } catch (e) {
     // no-op: validation will catch invalid ranges later.
   }
+}
+
+function buildDistinctColorMatrix_(rows, cols) {
+  var palette = [
+    '#ef5350', '#42a5f5', '#66bb6a', '#ffa726', '#ab47bc', '#26c6da', '#ec407a', '#9ccc65',
+    '#ff7043', '#5c6bc0', '#8d6e63', '#d4e157', '#26a69a', '#7e57c2', '#29b6f6', '#ffca28'
+  ];
+  var matrix = [];
+  for (var r = 0; r < rows; r++) {
+    var row = [];
+    for (var c = 0; c < cols; c++) {
+      row.push(palette[(r * cols + c) % palette.length]);
+    }
+    matrix.push(row);
+  }
+  return matrix;
 }

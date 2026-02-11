@@ -222,7 +222,7 @@ function extractJson_(prompt) {
 
 function buildSummary_(plan) {
   var lines = [];
-  lines.push('Objetivo: aplicar ' + plan.actions.length + ' acción(es).');
+  lines.push('Objetivo: realizar ' + plan.actions.length + ' acción(es) en la hoja de forma guiada.');
   lines.push('Acciones:');
   plan.actions.forEach(function (action, index) {
     lines.push((index + 1) + '. ' + describeAction_(action));
@@ -237,29 +237,45 @@ function buildSummary_(plan) {
   lines.push('Impacto:');
   lines.push(plan.actions.map(function (a) { return describeImpact_(a); }).join(' | '));
   lines.push('Resultado esperado:');
-  lines.push('Se ejecutarán las acciones listadas respetando la configuración actual del plan.');
+  lines.push('El archivo quedará actualizado exactamente como indican los pasos del plan.');
   return lines.join('\n');
 }
 
 function describeAction_(action) {
-  var op = action.op || 'acción';
+  var op = friendlyOp_(action.op || 'acción');
   var target = action.rangeA1 || action.targetA1 || action.sourceA1 || action.cell || 'sin rango';
-  var color = action.color ? ' color ' + action.color : '';
+  var color = action.color ? ' con color ' + action.color : '';
   if (action.op === 'setBackgrounds' && Array.isArray(action.colors)) {
-    color = ' múltiples colores';
+    color = ' con colores distintos por celda';
   }
-  return op + ' en ' + (action.sheetName || 'hoja activa') + ' (' + target + ')' + color;
+  return op + ' en ' + (action.sheetName || 'hoja activa') + ' (' + target + ')' + color + '.';
 }
 
 function describeImpact_(action) {
   if (action.op === 'setBackground' || action.op === 'setBackgrounds') {
-    return 'Se actualiza el color de ' + (action.rangeA1 || action.targetA1 || action.cell || 'un rango');
+    return 'Se verá un cambio visual de color en ' + (action.rangeA1 || action.targetA1 || action.cell || 'el rango elegido');
   }
   if (action.op === 'setFormula' || action.op === 'setFormulas') {
-    return 'Se actualizan fórmulas en ' + (action.rangeA1 || 'un rango');
+    return 'Las celdas calcularán resultados automáticos en ' + (action.rangeA1 || 'el rango elegido');
   }
   if (action.op === 'copyRange' || action.op === 'moveRange') {
-    return 'Se mueve/copia desde ' + (action.sourceA1 || 'origen') + ' hacia ' + (action.targetA1 || 'destino');
+    return 'Se trasladará contenido desde ' + (action.sourceA1 || 'origen') + ' hacia ' + (action.targetA1 || 'destino');
   }
-  return 'Se ejecuta ' + (action.op || 'acción') + ' en ' + (action.sheetName || 'hoja activa');
+  return 'Se aplicará un cambio en ' + (action.sheetName || 'la hoja activa');
+}
+
+function friendlyOp_(op) {
+  var map = {
+    setBackground: 'Pintar celdas',
+    setBackgrounds: 'Pintar celdas',
+    setValue: 'Escribir valor',
+    setValues: 'Escribir valores',
+    setFormula: 'Aplicar fórmula',
+    setFormulas: 'Aplicar fórmulas',
+    copyRange: 'Copiar rango',
+    moveRange: 'Mover rango',
+    setBorder: 'Aplicar bordes',
+    setBorders: 'Aplicar bordes'
+  };
+  return map[op] || ('Aplicar ' + op);
 }

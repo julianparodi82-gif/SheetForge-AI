@@ -39,7 +39,8 @@
     jsonLines.forEach(function(line) {
       var explanation = explainJsonLine(line, plan);
       if (explanation) {
-        formattedLines.push('<span class="line-explain">Paso ' + stepIndex + ': ' + escapeHtml(explanation) + '</span>');
+        var connector = stepIndex === 1 ? 'Primero' : 'Luego';
+        formattedLines.push('<span class="line-explain">Paso ' + stepIndex + ': ' + connector + ', ' + escapeHtml(explanation) + '</span>');
         stepIndex += 1;
       }
       formattedLines.push(escapeHtml(line));
@@ -52,32 +53,32 @@
     if (!keyMatch) return '';
     var key = keyMatch[1];
     var explanations = {
-      plan: 'Contiene todo el plan que se ejecutará.',
-      meta: 'Configuración general del plan.',
-      version: 'Versión del formato del plan.',
-      dryRun: 'Si está activado, solo simula sin aplicar cambios.',
-      safeMode: 'Si está activado, limita acciones riesgosas.',
-      notes: 'Notas adicionales para el plan.',
-      actions: 'Lista ordenada de acciones a ejecutar.',
-      op: 'Tipo de acción que se ejecutará.',
-      sheetName: 'Hoja de cálculo donde se aplica la acción.',
-      rangeA1: 'Rango de celdas afectado.',
-      sourceA1: 'Rango origen para copiar o mover.',
-      targetA1: 'Rango destino para copiar o mover.',
-      cell: 'Celda específica de destino.',
-      color: 'Color que se aplicará.',
-      values: 'Valores que se escribirán.',
-      formula: 'Fórmula que se aplicará.',
-      formulas: 'Fórmulas que se aplicarán en bloque.',
-      rowIndex: 'Fila inicial donde se ejecuta la acción.',
-      numRows: 'Cantidad de filas afectadas.',
-      columnIndex: 'Columna inicial donde se ejecuta la acción.',
-      numColumns: 'Cantidad de columnas afectadas.',
-      fileId: 'Identificador del archivo en Drive.',
-      width: 'Ancho del elemento en píxeles.',
-      height: 'Alto del elemento en píxeles.',
-      name: 'Nuevo nombre solicitado.',
-      filename: 'Nombre del archivo de salida.'
+      plan: 'definimos el plan completo que se va a ejecutar.',
+      meta: 'marcamos las reglas generales de ejecución.',
+      version: 'indicamos la versión del formato usado.',
+      dryRun: 'indicamos si es simulación o aplicación real.',
+      safeMode: 'indicamos si se bloquean acciones sensibles.',
+      notes: 'guardamos notas adicionales para referencia.',
+      actions: 'listamos las acciones en el orden exacto de ejecución.',
+      op: 'definimos qué acción se realizará.',
+      sheetName: 'indicamos en qué hoja se realizará la acción.',
+      rangeA1: 'indicamos el rango exacto donde se aplicará.',
+      sourceA1: 'indicamos de dónde sale la información.',
+      targetA1: 'indicamos a dónde se lleva la información.',
+      cell: 'indicamos la celda puntual de trabajo.',
+      color: 'definimos el color a aplicar.',
+      values: 'definimos los datos que se van a escribir.',
+      formula: 'definimos la fórmula que se aplicará.',
+      formulas: 'definimos varias fórmulas para varias celdas.',
+      rowIndex: 'indicamos desde qué fila empieza.',
+      numRows: 'indicamos cuántas filas se incluyen.',
+      columnIndex: 'indicamos desde qué columna empieza.',
+      numColumns: 'indicamos cuántas columnas se incluyen.',
+      fileId: 'indicamos el archivo a usar de Drive.',
+      width: 'definimos el ancho del elemento.',
+      height: 'definimos el alto del elemento.',
+      name: 'definimos el nombre solicitado.',
+      filename: 'definimos el nombre del archivo generado.'
     };
     return explanations[key] || '';
   }
@@ -93,8 +94,31 @@
 
   function refreshLogs() {
     google.script.run.withSuccessHandler(function(logs) {
-      document.getElementById('logs').textContent = logs.join('\n\n');
+      document.getElementById('logs').innerHTML = formatLogs(logs);
     }).getLastLogs(10);
+  }
+
+  function formatLogs(logs) {
+    return (logs || []).map(function(entry) {
+      var lines = String(entry || '').split('\n');
+      return lines.map(function(line) {
+        if (line.indexOf('Fecha:') === 0) {
+          return '<span class="log-date">' + escapeHtml(line) + '</span>';
+        }
+        if (line.indexOf('Estado:') === 0) {
+          var status = line.replace('Estado:', '').trim();
+          var statusClass = status === 'Aplicado' ? 'log-status-ok' : 'log-status-error';
+          return '<span class="log-label">Estado:</span> <span class="' + statusClass + '">' + escapeHtml(status) + '</span>';
+        }
+        if (line.indexOf('Mensaje:') === 0) {
+          return '<span class="log-label">Mensaje:</span> ' + escapeHtml(line.replace('Mensaje:', '').trim());
+        }
+        if (line.indexOf('Resumen:') === 0) {
+          return '<span class="log-label">Resumen:</span> ' + escapeHtml(line.replace('Resumen:', '').trim());
+        }
+        return escapeHtml(line);
+      }).join('<br>');
+    }).join('<br><br>');
   }
 
   document.getElementById('btnAnalyzeEdit').addEventListener('click', function() {
