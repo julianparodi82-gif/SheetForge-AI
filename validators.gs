@@ -70,6 +70,9 @@ function validateAction_(action, flags) {
       return 'Rango inválido: falta rangeA1';
     }
   }
+  if (action.op === 'setBackgrounds' && Array.isArray(action.colors) && action.colors.length) {
+    normalizeBackgroundRangeFromColors_(action, sheet || SpreadsheetApp.getActive().getActiveSheet());
+  }
   if (action.op === 'setFormula' && !action.formula) {
     action.formula = '';
   }
@@ -381,4 +384,27 @@ function normalizeColorMatrix_(inputColors, rows, cols, fallbackColor) {
     paletteMatrix.push(paletteRow);
   }
   return paletteMatrix;
+}
+
+function normalizeBackgroundRangeFromColors_(action, sheet) {
+  if (!action || !sheet || !Array.isArray(action.colors) || action.colors.length === 0) return;
+  var rows = action.colors.length;
+  var cols = Array.isArray(action.colors[0]) ? action.colors[0].length : action.colors.length;
+  if (!rows || !cols) return;
+
+  if (!action.rangeA1) {
+    var activeRange = SpreadsheetApp.getActive().getActiveRange();
+    if (!activeRange) return;
+    action.rangeA1 = sheet.getRange(activeRange.getRow(), activeRange.getColumn(), rows, cols).getA1Notation();
+    return;
+  }
+
+  try {
+    var current = sheet.getRange(action.rangeA1);
+    if (current.getNumRows() === 1 && current.getNumColumns() === 1 && (rows > 1 || cols > 1)) {
+      action.rangeA1 = sheet.getRange(current.getRow(), current.getColumn(), rows, cols).getA1Notation();
+    }
+  } catch (e) {
+    // no-op: validation will catch invalid ranges later.
+  }
 }

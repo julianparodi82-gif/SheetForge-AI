@@ -176,16 +176,34 @@
   });
 
   document.getElementById('btnCopyPlan').addEventListener('click', function() {
+    var statusEl = document.getElementById('status');
+    var previousStatusText = statusEl.textContent || '';
+    var previousIsError = (statusEl.className || '').indexOf('error') !== -1;
+    var shouldRestore = /Procesando|Aplicando|Escaneando/.test(previousStatusText);
+
     var planText = document.getElementById('planJson').innerText || '';
     if (!planText.trim()) {
       setStatus('No hay contenido para copiar.', true);
+      if (shouldRestore) {
+        setTimeout(function() { setStatus(previousStatusText, previousIsError); }, 900);
+      }
       return;
     }
+
+    function notifyCopyStatus(ok) {
+      setStatus(ok ? 'Plan copiado al portapapeles.' : 'No se pudo copiar el plan.', !ok);
+      if (shouldRestore) {
+        setTimeout(function() {
+          setStatus(previousStatusText, previousIsError);
+        }, 900);
+      }
+    }
+
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(planText).then(function() {
-        setStatus('Plan copiado al portapapeles.', false);
+        notifyCopyStatus(true);
       }).catch(function() {
-        setStatus('No se pudo copiar el plan.', true);
+        notifyCopyStatus(false);
       });
       return;
     }
@@ -195,9 +213,9 @@
     temp.select();
     try {
       document.execCommand('copy');
-      setStatus('Plan copiado al portapapeles.', false);
+      notifyCopyStatus(true);
     } catch (e) {
-      setStatus('No se pudo copiar el plan.', true);
+      notifyCopyStatus(false);
     }
     document.body.removeChild(temp);
   });
