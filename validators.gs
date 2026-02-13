@@ -6,7 +6,9 @@ var ALLOWED_OPS = [
   'copyCells', 'copyRows', 'copyColumns',
   'createFormula', 'dragFormula', 'fillFormula',
   'setFontColor', 'setFontWeight', 'setFontSize', 'setFontFamily', 'setFontStyle', 'setFontLine',
-  'setHorizontalAlignment', 'setVerticalAlignment', 'setWrap', 'setBorder', 'setBorders',
+  'setHorizontalAlignment', 'setVerticalAlignment', 'setHorizontalAlign', 'setVerticalAlign',
+  'alignLeft', 'alignCenter', 'alignRight', 'alignJustify', 'alignTop', 'alignMiddle', 'alignBottom',
+  'setAlignment', 'setWrap', 'setBorder', 'setBorders',
   'setTextRotation',
   'setNumberFormat', 'clearContent', 'copyPasteValues', 'copyPasteFormats', 'copyPasteAll',
   'copyPasteFormulas', 'copyRange', 'moveRange', 'createPivotTable',
@@ -232,6 +234,49 @@ function normalizeAction_(action) {
   if (action.op === 'dragFormula' || action.op === 'fillFormula') {
     action.op = Array.isArray(action.formulas) ? 'setFormulas' : 'setFormula';
   }
+  if (action.op === 'setHorizontalAlign') {
+    action.op = 'setHorizontalAlignment';
+  }
+  if (action.op === 'setVerticalAlign') {
+    action.op = 'setVerticalAlignment';
+  }
+  if (action.op === 'alignLeft') {
+    action.op = 'setHorizontalAlignment';
+    action.alignment = 'left';
+  }
+  if (action.op === 'alignCenter') {
+    action.op = 'setHorizontalAlignment';
+    action.alignment = 'center';
+  }
+  if (action.op === 'alignRight') {
+    action.op = 'setHorizontalAlignment';
+    action.alignment = 'right';
+  }
+  if (action.op === 'alignJustify') {
+    action.op = 'setHorizontalAlignment';
+    action.alignment = 'justify';
+  }
+  if (action.op === 'alignTop') {
+    action.op = 'setVerticalAlignment';
+    action.alignment = 'top';
+  }
+  if (action.op === 'alignMiddle') {
+    action.op = 'setVerticalAlignment';
+    action.alignment = 'middle';
+  }
+  if (action.op === 'alignBottom') {
+    action.op = 'setVerticalAlignment';
+    action.alignment = 'bottom';
+  }
+  if (action.op === 'setAlignment') {
+    if (action.horizontal && !action.alignment) {
+      action.op = 'setHorizontalAlignment';
+      action.alignment = action.horizontal;
+    } else if (action.vertical && !action.alignment) {
+      action.op = 'setVerticalAlignment';
+      action.alignment = action.vertical;
+    }
+  }
   if (action.op === 'paintCell') {
     action.op = 'setBackground';
     if (action.cell && !action.rangeA1) {
@@ -303,7 +348,9 @@ function requiresSheet_(op) {
     'moveCells', 'moveRows', 'moveColumns', 'copyCells', 'copyRows', 'copyColumns',
     'createFormula', 'dragFormula', 'fillFormula',
     'setFontColor', 'setFontWeight', 'setFontSize', 'setFontFamily', 'setFontStyle', 'setFontLine',
-    'setHorizontalAlignment', 'setVerticalAlignment', 'setWrap', 'setBorder', 'setBorders',
+    'setHorizontalAlignment', 'setVerticalAlignment', 'setHorizontalAlign', 'setVerticalAlign',
+  'alignLeft', 'alignCenter', 'alignRight', 'alignJustify', 'alignTop', 'alignMiddle', 'alignBottom',
+  'setAlignment', 'setWrap', 'setBorder', 'setBorders',
     'setTextRotation',
     'setNumberFormat', 'clearContent', 'copyPasteValues', 'copyPasteFormats', 'copyPasteAll',
     'copyPasteFormulas', 'copyRange', 'moveRange', 'createPivotTable',
@@ -319,7 +366,9 @@ function requiresRange_(op) {
     'setValue', 'setValues', 'setFormula', 'setFormulas', 'setBackground', 'setBackgrounds',
     'setBackgroundColor', 'paintCell', 'createFormula', 'dragFormula', 'fillFormula',
     'setFontColor', 'setFontWeight', 'setFontSize', 'setFontFamily', 'setFontStyle', 'setFontLine',
-    'setHorizontalAlignment', 'setVerticalAlignment', 'setWrap', 'setBorder', 'setBorders',
+    'setHorizontalAlignment', 'setVerticalAlignment', 'setHorizontalAlign', 'setVerticalAlign',
+  'alignLeft', 'alignCenter', 'alignRight', 'alignJustify', 'alignTop', 'alignMiddle', 'alignBottom',
+  'setAlignment', 'setWrap', 'setBorder', 'setBorders',
     'setTextRotation',
     'setNumberFormat', 'clearContent', 'setImageFormula'
   ].indexOf(op) !== -1;
