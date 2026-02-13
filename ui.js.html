@@ -2,7 +2,8 @@
   const state = {
     mode: 'IDLE',
     plan: null,
-    summary: ''
+    summary: '',
+    comment: ''
   };
 
   function setStatus(message, isError) {
@@ -16,7 +17,7 @@
     if (isError) {
       return { icon: '⚠', iconClass: 'error wiggle' };
     }
-    if (/Procesando|Aplicando|Escaneando/.test(message)) {
+    if (/Procesando|Aplicando|Escaneando|Editando plan/.test(message)) {
       return { icon: '', iconClass: 'loading' };
     }
     if (/copiado/i.test(message)) {
@@ -145,15 +146,17 @@
 
   document.getElementById('btnAnalyzeEdit').addEventListener('click', function() {
     const prompt = document.getElementById('promptInput').value.trim();
+    const comment = document.getElementById('commentInput').value.trim();
     if (!prompt) {
       setStatus('Prompt vacío.', true);
       return;
     }
+    state.comment = comment;
     const flags = {
       dryRun: document.getElementById('dryRun').checked,
       safeMode: document.getElementById('safeMode').checked
     };
-    setStatus('Procesando...', false);
+    setStatus(state.mode === 'IDLE' ? 'Procesando...' : 'Editando plan...', false);
     if (state.mode === 'IDLE') {
       google.script.run.withSuccessHandler(function(result) {
         if (result.error) {
@@ -164,7 +167,7 @@
         setMode('PLANNED');
         setStatus('Plan generado.', false);
         refreshLogs();
-      }).buildPlan(prompt, flags);
+      }).buildPlan(prompt, flags, comment);
     } else {
       google.script.run.withSuccessHandler(function(result) {
         if (result.error) {
@@ -175,7 +178,7 @@
         setMode('PLANNED');
         setStatus('Plan actualizado.', false);
         refreshLogs();
-      }).editPlan(prompt, state.plan, flags);
+      }).editPlan(prompt, state.plan, flags, comment);
     }
   });
 
@@ -197,6 +200,7 @@
       setMode('IDLE');
       renderPlan(null, '');
       document.getElementById('promptInput').value = '';
+      document.getElementById('commentInput').value = '';
       setStatus(result.message, false);
       refreshLogs();
     }).applyPlan(state.plan, flags);
@@ -225,7 +229,7 @@
     var statusEl = document.getElementById('status');
     var previousStatusText = statusEl.textContent || '';
     var previousIsError = (statusEl.className || '').indexOf('error') !== -1;
-    var shouldRestore = /Procesando|Aplicando|Escaneando/.test(previousStatusText);
+    var shouldRestore = /Procesando|Aplicando|Escaneando|Editando plan/.test(previousStatusText);
 
     var planText = document.getElementById('planJson').innerText || '';
     if (!planText.trim()) {

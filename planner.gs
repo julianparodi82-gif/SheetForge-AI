@@ -1,4 +1,4 @@
-function buildPlan(prompt, flags) {
+function buildPlan(prompt, flags, userComment) {
   ensureSpecialSheets_();
   var trimmed = (prompt || '').trim();
   if (!trimmed) return { error: 'Prompt vacío.' };
@@ -8,12 +8,12 @@ function buildPlan(prompt, flags) {
     var summary = buildSummary_(plan);
     return { plan: plan, summary: summary };
   }
-  var aiResult = buildPlanWithAi_(trimmed, flags, null);
+  var aiResult = buildPlanWithAi_(trimmed, flags, null, userComment);
   if (aiResult.error) return aiResult;
   return aiResult;
 }
 
-function editPlan(editPrompt, currentPlan, flags) {
+function editPlan(editPrompt, currentPlan, flags, userComment) {
   ensureSpecialSheets_();
   var trimmed = (editPrompt || '').trim();
   if (!currentPlan) return { error: 'Sin plan actual.' };
@@ -23,12 +23,12 @@ function editPlan(editPrompt, currentPlan, flags) {
     var summary = buildSummary_(updated);
     return { plan: updated, summary: summary };
   }
-  var aiResult = buildPlanWithAi_(trimmed, flags, currentPlan);
+  var aiResult = buildPlanWithAi_(trimmed, flags, currentPlan, userComment);
   if (aiResult.error) return aiResult;
   return aiResult;
 }
 
-function buildPlanWithAi_(prompt, flags, currentPlan) {
+function buildPlanWithAi_(prompt, flags, currentPlan, userComment) {
   var props = PropertiesService.getDocumentProperties();
   var userProps = PropertiesService.getUserProperties();
   var endpoint = props.getProperty('AI_ENDPOINT') || '';
@@ -37,7 +37,7 @@ function buildPlanWithAi_(prompt, flags, currentPlan) {
     return { error: 'IA no configurada. Define tu API key en Configuración.' };
   }
   var context = getContext_();
-  var payload = buildAiPayload_(prompt, flags, currentPlan, context);
+  var payload = buildAiPayload_(prompt, flags, currentPlan, context, userComment);
   var response = callAiEndpoint_(endpoint, apiKey, payload);
   if (response.error) return response;
   var parsed = parseAiPlanResponse_(response);
@@ -84,7 +84,7 @@ function editPlanWithCommand_(prompt, plan) {
   return { error: 'Comando de edición no soportado.' };
 }
 
-function buildAiPayload_(prompt, flags, currentPlan, context) {
+function buildAiPayload_(prompt, flags, currentPlan, context, userComment) {
   var system = [
     'Eres un generador de PLAN JSON para Google Sheets.',
     'Responde SOLO con JSON válido.',
@@ -99,6 +99,9 @@ function buildAiPayload_(prompt, flags, currentPlan, context) {
   var user = [
     'INSTRUCCIÓN:',
     prompt,
+    '',
+    'COMENTARIO_USUARIO (prioridad alta):',
+    userComment || '',
     '',
     'FLAGS:',
     JSON.stringify(flags || {}),

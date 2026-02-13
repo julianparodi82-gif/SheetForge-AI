@@ -62,6 +62,7 @@
     <div class="container">
       <h2>SheetForge AI — Operador IA</h2>
       <textarea id="promptInput" class="prompt-input" placeholder="Escribe instrucciones o comandos..."></textarea>
+      <textarea id="commentInput" class="prompt-input" style="min-height:72px; margin-top:8px;" placeholder="Comentario adicional para la IA (se tomará en cuenta al crear/editar el plan)..."></textarea>
       <div class="row buttons">
         <button id="btnAnalyzeEdit" class="primary">Analizar</button>
         <button id="btnApply" class="secondary" disabled>Aplicar</button>
@@ -82,12 +83,12 @@
         </label>
         <button id="btnScan" class="secondary">Escanear proyecto</button>
       </div>
-      <details class="panel tooltip tooltip-top" data-tooltip="Estado actual de la solicitud y mensajes de proceso." open>
-        <summary>Estado</summary>
+      <div class="panel tooltip tooltip-top" data-tooltip="Estado actual de la solicitud y mensajes de proceso.">
+        <div style="font-weight:600;color:#1b5e20;">Estado</div>
         <div class="panel-content">
           <div id="status" class="status"></div>
         </div>
-      </details>
+      </div>
       <details class="panel tooltip tooltip-top" data-tooltip="Resumen en lenguaje profesional de lo que se ejecutará, con objetivos, acciones y resultados esperados." open>
         <summary>Resumen profesional</summary>
         <div class="panel-content">
