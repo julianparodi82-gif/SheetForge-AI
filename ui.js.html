@@ -7,8 +7,25 @@
 
   function setStatus(message, isError) {
     const el = document.getElementById('status');
-    el.textContent = message || '';
+    const meta = getStatusMeta(message || '', isError);
+    el.innerHTML = '<span class="status-wrap"><span class="status-icon ' + meta.iconClass + '">' + meta.icon + '</span><span>' + escapeHtml(message || '') + '</span></span>';
     el.className = isError ? 'status error' : 'status ok';
+  }
+
+  function getStatusMeta(message, isError) {
+    if (isError) {
+      return { icon: '⚠', iconClass: 'error wiggle' };
+    }
+    if (/Procesando|Aplicando|Escaneando/.test(message)) {
+      return { icon: '', iconClass: 'loading' };
+    }
+    if (/copiado/i.test(message)) {
+      return { icon: '📋', iconClass: 'ok pulse' };
+    }
+    if (/generado|actualizado|limpiados|correctamente/i.test(message)) {
+      return { icon: '✅', iconClass: 'ok pulse' };
+    }
+    return { icon: 'ℹ', iconClass: 'info' };
   }
 
   function setMode(mode) {
@@ -39,13 +56,18 @@
     jsonLines.forEach(function(line) {
       var explanation = explainJsonLine(line, plan);
       if (explanation) {
-        var connector = stepIndex === 1 ? 'Primero' : 'Luego';
+        var connector = getStepConnector(stepIndex);
         formattedLines.push('<span class="line-explain">Paso ' + stepIndex + ': ' + connector + ', ' + escapeHtml(explanation) + '</span>');
         stepIndex += 1;
       }
       formattedLines.push(escapeHtml(line));
     });
     return formattedLines.join('\n');
+  }
+
+  function getStepConnector(step) {
+    var options = ['Primero', 'Después', 'A continuación', 'Luego', 'Por último'];
+    return options[Math.min(step - 1, options.length - 1)];
   }
 
   function explainJsonLine(line) {

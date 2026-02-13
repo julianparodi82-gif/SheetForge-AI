@@ -24,6 +24,17 @@
       .panel-content { padding-top: 8px; }
       .status.ok { color: #1b5e20; }
       .status.error { color: #b71c1c; }
+      .status-wrap { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+      .status-icon { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; font-size: 12px; }
+      .status-icon.loading { border: 2px solid #a5d6a7; border-top-color: #1b5e20; background: transparent; color: transparent; animation: spin 0.9s linear infinite; }
+      .status-icon.ok { background: #d9f4dd; }
+      .status-icon.error { background: #ffd9d9; }
+      .status-icon.info { background: #e9f4ff; }
+      .status-icon.pulse { animation: pulse 1.2s ease-in-out infinite; }
+      .status-icon.wiggle { animation: wiggle 0.9s ease-in-out infinite; }
+      @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.12); } 100% { transform: scale(1); } }
+      @keyframes wiggle { 0%,100% { transform: rotate(0deg); } 25% { transform: rotate(8deg); } 75% { transform: rotate(-8deg); } }
       label { font-size: 12px; font-weight: 600; color: #2e5a3a; }
       select, input[type=checkbox] { margin-right: 6px; }
       pre { white-space: pre-wrap; word-break: break-word; margin: 0; }
@@ -71,6 +82,12 @@
         </label>
         <button id="btnScan" class="secondary">Escanear proyecto</button>
       </div>
+      <details class="panel tooltip tooltip-top" data-tooltip="Estado actual de la solicitud y mensajes de proceso." open>
+        <summary>Estado</summary>
+        <div class="panel-content">
+          <div id="status" class="status"></div>
+        </div>
+      </details>
       <details class="panel tooltip tooltip-top" data-tooltip="Resumen en lenguaje profesional de lo que se ejecutará, con objetivos, acciones y resultados esperados." open>
         <summary>Resumen profesional</summary>
         <div class="panel-content">
@@ -86,12 +103,6 @@
         </summary>
         <div class="panel-content">
           <pre id="planJson" class="scrollable"></pre>
-        </div>
-      </details>
-      <details class="panel tooltip tooltip-top" data-tooltip="Estado actual de la solicitud y mensajes de proceso." open>
-        <summary>Estado</summary>
-        <div class="panel-content">
-          <div id="status" class="status"></div>
         </div>
       </details>
       <details class="panel tooltip tooltip-top" data-tooltip="Historial reciente de operaciones ejecutadas en esta hoja." open>
