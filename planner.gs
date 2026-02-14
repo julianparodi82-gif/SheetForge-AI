@@ -337,11 +337,9 @@ function extractJson_(prompt) {
 
 function buildSummary_(plan) {
   var lines = [];
-  lines.push('Objetivo: realizar ' + plan.actions.length + ' acción(es) en la hoja de forma guiada.');
+  lines.push('Objetivo: aplicar los cambios solicitados en la hoja respetando prioridad de instrucciones del usuario.');
   lines.push('Acciones:');
-  plan.actions.forEach(function (action, index) {
-    lines.push((index + 1) + '. ' + describeAction_(action));
-  });
+  lines.push('- Bloque de ejecución: ' + plan.actions.length + ' acción(es) coordinadas para aplicar formato/datos según el plan.');
   lines.push('Ubicación exacta:');
   plan.actions.forEach(function (action) {
     if (action.sheetName) {
@@ -351,15 +349,13 @@ function buildSummary_(plan) {
   });
   lines.push('Impacto:');
   lines.push(plan.actions.map(function (a) { return describeImpact_(a); }).join(' | '));
-  lines.push('Resultado esperado:');
-  lines.push('El archivo quedará actualizado exactamente como indican los pasos del plan.');
   return lines.join('\n');
 }
 
 function describeAction_(action) {
   var op = friendlyOp_(action.op || 'acción');
   var target = action.rangeA1 || action.targetA1 || action.sourceA1 || action.cell || 'sin rango';
-  var color = action.color ? ' con color ' + action.color : '';
+  var color = action.color ? ' con color ' + formatColorLabel_(action.color) : '';
   if (action.op === 'setBackgrounds' && Array.isArray(action.colors)) {
     color = ' con colores distintos por celda';
   }
@@ -393,4 +389,21 @@ function friendlyOp_(op) {
     setBorders: 'Aplicar bordes'
   };
   return map[op] || ('Aplicar ' + op);
+}
+
+function formatColorLabel_(hex) {
+  var normalized = String(hex || '').toLowerCase();
+  var names = {
+    '#ff0000': 'Rojo',
+    '#00ff00': 'Verde',
+    '#0000ff': 'Azul',
+    '#ffff00': 'Amarillo',
+    '#ffa500': 'Naranja',
+    '#800080': 'Morado',
+    '#000000': 'Negro',
+    '#ffffff': 'Blanco',
+    '#ffeb3b': 'Amarillo claro'
+  };
+  var name = names[normalized] || 'Color personalizado';
+  return name + ' (' + hex + ')';
 }

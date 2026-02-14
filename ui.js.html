@@ -46,64 +46,41 @@
     state.plan = plan;
     state.summary = summary || '';
     document.getElementById('planJson').innerHTML = formatPlanWithExplanation(plan);
-    document.getElementById('summary').textContent = summary || '';
+    document.getElementById('summary').innerHTML = formatSummaryWithColors(summary || '');
   }
 
   function formatPlanWithExplanation(plan) {
     if (!plan) return '';
-    var jsonLines = JSON.stringify(plan, null, 2).split('\n');
-    var formattedLines = [];
-    var stepIndex = 1;
-    jsonLines.forEach(function(line) {
-      var explanation = explainJsonLine(line, plan);
-      if (explanation) {
-        var connector = getStepConnector(stepIndex);
-        formattedLines.push('<span class="line-explain">Paso ' + stepIndex + ': ' + connector + ', ' + escapeHtml(explanation) + '</span>');
-        stepIndex += 1;
-      }
-      formattedLines.push(escapeHtml(line));
+    var blocks = buildPlanBlockSummaries(plan);
+    var blockLines = blocks.map(function(text, index) {
+      return '<span class="line-explain">Bloque ' + (index + 1) + ': ' + escapeHtml(text) + '</span>';
     });
-    return formattedLines.join('\n');
+    blockLines.push(escapeHtml(JSON.stringify(plan, null, 2)));
+    return blockLines.join('\n');
   }
 
-  function getStepConnector(step) {
-    var options = ['Primero', 'Después', 'A continuación', 'Luego', 'Por último'];
-    return options[(step - 1) % options.length];
+  function buildPlanBlockSummaries(plan) {
+    if (!plan) return [];
+    var blocks = [];
+    if (plan.meta) {
+      blocks.push('Configuración general: versión ' + (plan.meta.version || '1.0') + ', dryRun=' + !!plan.meta.dryRun + ', safeMode=' + !!plan.meta.safeMode + '.');
+    }
+    if (Array.isArray(plan.actions) && plan.actions.length) {
+      blocks.push('Ejecución: ' + plan.actions.length + ' acción(es) agrupadas en orden de aplicación.');
+      plan.actions.forEach(function(action, index) {
+        var location = action.rangeA1 || action.targetA1 || action.sourceA1 || action.cell || 'sin rango';
+        blocks.push('Acción ' + (index + 1) + ': ' + (action.op || 'acción') + ' en ' + (action.sheetName || 'hoja activa') + ' (' + location + ').');
+      });
+    }
+    return blocks;
   }
 
-  function explainJsonLine(line) {
-    var keyMatch = line.match(/"([^"]+)"\s*:/);
-    if (!keyMatch) return '';
-    var key = keyMatch[1];
-    var explanations = {
-      plan: 'definimos el plan completo que se va a ejecutar.',
-      meta: 'marcamos las reglas generales de ejecución.',
-      version: 'indicamos la versión del formato usado.',
-      dryRun: 'indicamos si es simulación o aplicación real.',
-      safeMode: 'indicamos si se bloquean acciones sensibles.',
-      notes: 'guardamos notas adicionales para referencia.',
-      actions: 'listamos las acciones en el orden exacto de ejecución.',
-      op: 'definimos qué acción se realizará.',
-      sheetName: 'indicamos en qué hoja se realizará la acción.',
-      rangeA1: 'indicamos el rango exacto donde se aplicará.',
-      sourceA1: 'indicamos de dónde sale la información.',
-      targetA1: 'indicamos a dónde se lleva la información.',
-      cell: 'indicamos la celda puntual de trabajo.',
-      color: 'definimos el color a aplicar.',
-      values: 'definimos los datos que se van a escribir.',
-      formula: 'definimos la fórmula que se aplicará.',
-      formulas: 'definimos varias fórmulas para varias celdas.',
-      rowIndex: 'indicamos desde qué fila empieza.',
-      numRows: 'indicamos cuántas filas se incluyen.',
-      columnIndex: 'indicamos desde qué columna empieza.',
-      numColumns: 'indicamos cuántas columnas se incluyen.',
-      fileId: 'indicamos el archivo a usar de Drive.',
-      width: 'definimos el ancho del elemento.',
-      height: 'definimos el alto del elemento.',
-      name: 'definimos el nombre solicitado.',
-      filename: 'definimos el nombre del archivo generado.'
-    };
-    return explanations[key] || '';
+  function formatSummaryWithColors(summary) {
+    var escaped = escapeHtml(summary || '');
+    escaped = escaped.replace(/\b([A-Za-zÁÉÍÓÚáéíóúñÑ ]+)\s*\((#[0-9a-fA-F]{6})\)/g, function(_, name, hex) {
+      return '<span class="color-badge"><span class="color-dot" style="background:' + hex + ';"></span><span style="color:' + hex + ';font-weight:700;">' + escapeHtml(name.trim()) + '</span> (' + hex.toUpperCase() + ')</span>';
+    });
+    return escaped.replace(/\n/g, '<br>');
   }
 
   function escapeHtml(value) {
