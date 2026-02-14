@@ -152,7 +152,12 @@ function callAiEndpoint_(endpoint, apiKey, payload) {
 
 function parseAiPlanResponse_(response) {
   var raw = response.text;
-  var data = JSON.parse(raw);
+  var data;
+  try {
+    data = JSON.parse(raw);
+  } catch (e) {
+    return { error: 'La respuesta del servicio IA no llegó en JSON válido. Intenta nuevamente.' };
+  }
   var content = '';
   if (data && data.choices && data.choices.length && data.choices[0].message) {
     content = data.choices[0].message.content;
@@ -164,7 +169,12 @@ function parseAiPlanResponse_(response) {
   var jsonEnd = content.lastIndexOf('}');
   if (jsonStart === -1 || jsonEnd === -1) return { error: 'Respuesta IA inválida.' };
   var jsonText = content.substring(jsonStart, jsonEnd + 1);
-  var parsed = JSON.parse(jsonText);
+  var parsed;
+  try {
+    parsed = JSON.parse(jsonText);
+  } catch (e) {
+    return { error: 'La IA devolvió un plan con JSON inválido. Reformula el pedido o vuelve a intentar.' };
+  }
   if (!parsed.plan || !parsed.plan.actions) return { error: 'Plan IA inválido.' };
   return { plan: parsed.plan, summary: parsed.summary || '' };
 }
