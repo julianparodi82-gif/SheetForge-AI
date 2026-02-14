@@ -62,22 +62,88 @@ function buildContext_(ss, mode, onlySheetIds, existingLines) {
 function buildSheetBlock_(sheet, configRanges, includeValues) {
   var lines = [];
   var sheetId = sheet.getSheetId();
+  var dataRange = sheet.getDataRange();
+  var lastRow = sheet.getLastRow();
+  var lastColumn = sheet.getLastColumn();
+  var maxRows = sheet.getMaxRows();
+  var maxColumns = sheet.getMaxColumns();
   lines.push('### BEGIN_SHEET_BLOCK::' + sheetId);
   lines.push('## HOJA: ' + sheet.getName());
   lines.push('- sheetId ' + sheetId);
-  lines.push('- filas | columnas ' + sheet.getMaxRows() + ' | ' + sheet.getMaxColumns());
+  lines.push('- filas | columnas (max) ' + maxRows + ' | ' + maxColumns);
+  lines.push('- filas | columnas (usadas) ' + lastRow + ' | ' + lastColumn);
+  lines.push('- rango_usado ' + dataRange.getA1Notation());
+  lines.push('- hoja_oculta ' + (sheet.isSheetHidden() ? 'si' : 'no'));
+  lines.push('- filas_congeladas | columnas_congeladas ' + sheet.getFrozenRows() + ' | ' + sheet.getFrozenColumns());
   var ranges = configRanges.filter(function (r) { return r.sheetName === sheet.getName(); });
   lines.push('- rangos_clave ' + (ranges.map(function (r) { return r.rangeA1; }).join(', ') || 'desconocido'));
-  lines.push('- tablas_detectadas desconocido');
-  lines.push('- columnas_importantes desconocido');
+  lines.push('- filtros_activos ' + (sheet.getFilter() ? 'si' : 'no'));
+  lines.push('- columnas_importantes ' + summarizeHeader_(sheet, lastColumn));
+  lines.push('- celdas_con_formula ' + countFormulaCells_(sheet));
+  lines.push('- celdas_con_validacion ' + countValidationCells_(sheet));
+  lines.push('- celdas_con_nota ' + countNoteCells_(sheet));
+  lines.push('- celdas_combinadas ' + countMergedCells_(sheet));
+  lines.push('- reglas_formato_condicional ' + countConditionalRules_(sheet));
   var formats = sampleFormats_(sheet);
   lines.push('- formatos_relevantes ' + formats.join(', '));
   var formulas = sampleFormulas_(sheet);
   lines.push('- formulas_representativas ' + formulas.join(', '));
-  lines.push('- dependencias desconocido');
+  lines.push('- dependencias posibles entre hojas/formulas (muestreo)');
+  if (includeValues) {
+    lines.push('- valores_muestra ' + JSON.stringify(sampleValues_(sheet)));
+  }
   lines.push('- notas_operativas ' + (includeValues ? 'valores muestreados' : 'muestreo quick'));
   lines.push('### END_SHEET_BLOCK::' + sheetId);
   return lines;
+}
+
+function summarizeHeader_(sheet, lastColumn) {
+  if (!lastColumn) return 'desconocido';
+  var header = sheet.getRange(1, 1, 1, Math.min(lastColumn, 15)).getDisplayValues()[0] || [];
+  var cleaned = header.filter(function (v) { return v; });
+  return cleaned.length ? cleaned.join(' | ') : 'sin encabezados detectados';
+}
+
+function countFormulaCells_(sheet) {
+  var formulas = sheet.getDataRange().getFormulas();
+  var count = 0;
+  formulas.forEach(function (row) {
+    row.forEach(function (cell) { if (cell) count += 1; });
+  });
+  return count;
+}
+
+function countValidationCells_(sheet) {
+  var vals = sheet.getDataRange().getDataValidations();
+  var count = 0;
+  vals.forEach(function (row) {
+    row.forEach(function (cell) { if (cell) count += 1; });
+  });
+  return count;
+}
+
+function countNoteCells_(sheet) {
+  var notes = sheet.getDataRange().getNotes();
+  var count = 0;
+  notes.forEach(function (row) {
+    row.forEach(function (cell) { if (cell) count += 1; });
+  });
+  return count;
+}
+
+function countMergedCells_(sheet) {
+  var ranges = sheet.getDataRange().getMergedRanges();
+  return ranges ? ranges.length : 0;
+}
+
+function countConditionalRules_(sheet) {
+  return sheet.getConditionalFormatRules().length;
+}
+
+function sampleValues_(sheet) {
+  var range = sheet.getDataRange();
+  var values = range.getDisplayValues();
+  return values.slice(0, 5).map(function (row) { return row.slice(0, 5); });
 }
 
 function sampleFormulas_(sheet) {

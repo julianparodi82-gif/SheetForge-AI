@@ -2,9 +2,9 @@
   const state = {
     mode: 'IDLE',
     plan: null,
-    summary: '',
-    comment: ''
+    summary: ''
   };
+  let scanProgressTimer = null;
 
   function setStatus(message, isError) {
     const el = document.getElementById('status');
@@ -146,12 +146,10 @@
 
   document.getElementById('btnAnalyzeEdit').addEventListener('click', function() {
     const prompt = document.getElementById('promptInput').value.trim();
-    const comment = document.getElementById('commentInput').value.trim();
     if (!prompt) {
       setStatus('Prompt vacío.', true);
       return;
     }
-    state.comment = comment;
     const flags = {
       dryRun: document.getElementById('dryRun').checked,
       safeMode: document.getElementById('safeMode').checked
@@ -167,7 +165,7 @@
         setMode('PLANNED');
         setStatus('Plan generado.', false);
         refreshLogs();
-      }).buildPlan(prompt, flags, comment);
+      }).buildPlan(prompt, flags);
     } else {
       google.script.run.withSuccessHandler(function(result) {
         if (result.error) {
@@ -178,7 +176,7 @@
         setMode('PLANNED');
         setStatus('Plan actualizado.', false);
         refreshLogs();
-      }).editPlan(prompt, state.plan, flags, comment);
+      }).editPlan(prompt, state.plan, flags);
     }
   });
 
@@ -200,7 +198,6 @@
       setMode('IDLE');
       renderPlan(null, '');
       document.getElementById('promptInput').value = '';
-      document.getElementById('commentInput').value = '';
       setStatus(result.message, false);
       refreshLogs();
     }).applyPlan(state.plan, flags);
@@ -214,8 +211,9 @@
 
   document.getElementById('btnScan').addEventListener('click', function() {
     const mode = document.getElementById('scanMode').value;
-    setStatus('Escaneando...', false);
+    startScanProgress(mode);
     google.script.run.withSuccessHandler(function(result) {
+      stopScanProgress();
       if (result.error) {
         setStatus(result.error, true);
         return;
@@ -224,6 +222,35 @@
       refreshLogs();
     }).scanProjectAndUpdateContext({ mode });
   });
+
+  function startScanProgress(mode) {
+    stopScanProgress();
+    var steps = mode === 'full'
+      ? [
+          'Escaneando: leyendo estructura general del archivo...',
+          'Escaneando: revisando hojas, tamaños y rangos usados...',
+          'Escaneando: analizando fórmulas, formatos y validaciones...',
+          'Escaneando: consolidando contexto completo para la IA...'
+        ]
+      : [
+          'Escaneando: leyendo estructura base del archivo...',
+          'Escaneando: identificando hojas y rangos principales...',
+          'Escaneando: guardando contexto rápido para la IA...'
+        ];
+    var index = 0;
+    setStatus(steps[index], false);
+    scanProgressTimer = setInterval(function() {
+      index = (index + 1) % steps.length;
+      setStatus(steps[index], false);
+    }, 1200);
+  }
+
+  function stopScanProgress() {
+    if (scanProgressTimer) {
+      clearInterval(scanProgressTimer);
+      scanProgressTimer = null;
+    }
+  }
 
   document.getElementById('btnCopyPlan').addEventListener('click', function() {
     var statusEl = document.getElementById('status');
