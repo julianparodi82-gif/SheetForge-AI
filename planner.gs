@@ -44,7 +44,8 @@ function buildPlanWithAi_(prompt, flags, currentPlan) {
   if (parsed.error) return parsed;
   var validationError = validatePlan_(parsed.plan, flags);
   if (validationError) return { error: validationError };
-  return { plan: parsed.plan, summary: buildSummary_(parsed.plan) };
+  var summary = parsed.summary || buildSummary_(parsed.plan);
+  return { plan: parsed.plan, summary: summary };
 }
 
 function commandToPlan_(prompt, flags) {
@@ -90,9 +91,14 @@ function buildAiPayload_(prompt, flags, currentPlan, context) {
     'Responde SOLO con JSON válido.',
     'Formato esperado:',
     '{"plan":{"meta":{"version":"1.0","dryRun":false,"safeMode":true,"notes":""},"actions":[{"op":"..."}]},"summary":"..."}',
+    'El PLAN JSON y el summary profesional deben salir explícitamente de la lectura textual del comentario del usuario.',
+    'Usa el CONTEXTO solo como ayuda auxiliar para completar datos faltantes, nunca como fuente principal cuando contradice al comentario.',
     'El summary debe incluir: Objetivo, Acciones, Ubicación exacta, Impacto, Resultado esperado.',
-    'Si falta información, usa valores probables basados en el contexto sin inventar (ej.: color por defecto #ffeb3b, ubicación usando la celda activa o el rango actual).',
-    'Completa bordes, colores y ubicaciones con valores razonables cuando no se indiquen explícitamente.',
+    'Workflow obligatorio: (1) lee literalmente la instrucción del usuario, (2) extrae primero color/rango/objetivo exactos desde el texto, (3) recién después arma el JSON de acciones.',
+    'La instrucción textual del usuario tiene prioridad total sobre cualquier patrón por defecto.',
+    'Si el usuario pide una escala de color específica (ej. escala de rojos), usa únicamente esa familia de color.',
+    'Si falta información, completa con decisiones razonables derivadas del texto del usuario y del contexto (sin usar paletas predefinidas no solicitadas).',
+    'Completa bordes, colores y ubicaciones con valores razonables solo cuando el usuario no los indique explícitamente.',
     'Respeta exactamente los valores proporcionados por el usuario (color, ubicación, bordes, etc.) y evita cambiarlos.',
     'No ejecutes acciones. Solo planifica.'
   ].join('\n');
