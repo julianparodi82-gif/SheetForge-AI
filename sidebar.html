@@ -52,6 +52,8 @@
       .panel.tooltip:hover::after { opacity: 1; transform: translate(-50%, -8px); }
       .logs-actions { display: flex; justify-content: center; margin-top: 8px; }
       .line-explain { background: #fff8c4; color: #5a4b00; padding: 0 4px; margin-left: 6px; border-radius: 4px; display: inline-block; }
+      .color-badge { display: inline-flex; align-items: center; gap: 6px; background: #f3f7f4; border-radius: 12px; padding: 0 6px; }
+      .color-dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid #d0d7d2; display: inline-block; }
       .log-date { background: #fff8c4; color: #6a5800; padding: 1px 4px; border-radius: 4px; font-weight: 600; }
       .log-status-ok { background: #d9f4dd; padding: 1px 4px; border-radius: 4px; font-weight: 700; }
       .log-status-error { background: #ffd9d9; padding: 1px 4px; border-radius: 4px; font-weight: 700; }
@@ -88,13 +90,13 @@
           <div id="status" class="status"></div>
         </div>
       </div>
-      <details class="panel tooltip tooltip-top" data-tooltip="Resumen en lenguaje profesional de lo que se ejecutará, con objetivos, acciones y resultados esperados." open>
+      <details class="panel tooltip tooltip-top" data-tooltip="Resumen en lenguaje profesional de lo que se ejecutará, con objetivo, acciones por bloque, ubicación e impacto." open>
         <summary>Resumen profesional</summary>
         <div class="panel-content">
           <pre id="summary" class="scrollable"></pre>
         </div>
       </details>
-      <details class="panel tooltip tooltip-top" data-tooltip="Plan técnico en JSON con explicación integrada línea por línea." open>
+      <details class="panel tooltip tooltip-top" data-tooltip="Plan técnico en JSON con explicación integrada por bloques." open>
         <summary>
           <span>Plan JSON</span>
           <span class="summary-actions">

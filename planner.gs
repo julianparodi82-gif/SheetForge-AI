@@ -44,7 +44,8 @@ function buildPlanWithAi_(prompt, flags, currentPlan) {
   if (parsed.error) return parsed;
   var validationError = validatePlan_(parsed.plan, flags);
   if (validationError) return { error: validationError };
-  return { plan: parsed.plan, summary: buildSummary_(parsed.plan) };
+  var summary = parsed.summary || buildSummary_(parsed.plan);
+  return { plan: parsed.plan, summary: summary };
 }
 
 function commandToPlan_(prompt, flags) {
@@ -90,9 +91,18 @@ function buildAiPayload_(prompt, flags, currentPlan, context) {
     'Responde SOLO con JSON válido.',
     'Formato esperado:',
     '{"plan":{"meta":{"version":"1.0","dryRun":false,"safeMode":true,"notes":""},"actions":[{"op":"..."}]},"summary":"..."}',
-    'El summary debe incluir: Objetivo, Acciones, Ubicación exacta, Impacto, Resultado esperado.',
-    'Si falta información, usa valores probables basados en el contexto sin inventar (ej.: color por defecto #ffeb3b, ubicación usando la celda activa o el rango actual).',
-    'Completa bordes, colores y ubicaciones con valores razonables cuando no se indiquen explícitamente.',
+    'El PLAN JSON y el summary profesional deben salir explícitamente de la lectura textual del comentario del usuario.',
+    'Usa el CONTEXTO solo como ayuda auxiliar para completar datos faltantes, nunca como fuente principal cuando contradice al comentario.',
+    'El summary debe incluir solo: Objetivo, Acciones, Ubicación exacta, Impacto.',
+    'No incluyas la sección "Resultado esperado".',
+    'En "Objetivo" no inicies con la cantidad de acciones; inicia con un resumen claro de lo que se ejecutará.',
+    'En "Acciones", explica por bloques (grupos lógicos), no línea por línea ni con pasos redundantes.',
+    'Cuando menciones colores, usa formato: NombreColor (#RRGGBB).',
+    'Workflow obligatorio: (1) lee literalmente la instrucción del usuario, (2) extrae primero color/rango/objetivo exactos desde el texto, (3) recién después arma el JSON de acciones.',
+    'La instrucción textual del usuario tiene prioridad total sobre cualquier patrón por defecto.',
+    'Si el usuario pide una escala de color específica (ej. escala de rojos), usa únicamente esa familia de color.',
+    'Si falta información, completa con decisiones razonables derivadas del texto del usuario y del contexto (sin usar paletas predefinidas no solicitadas).',
+    'Completa bordes, colores y ubicaciones con valores razonables solo cuando el usuario no los indique explícitamente.',
     'Respeta exactamente los valores proporcionados por el usuario (color, ubicación, bordes, etc.) y evita cambiarlos.',
     'No ejecutes acciones. Solo planifica.'
   ].join('\n');
@@ -222,11 +232,9 @@ function extractJson_(prompt) {
 
 function buildSummary_(plan) {
   var lines = [];
-  lines.push('Objetivo: realizar ' + plan.actions.length + ' acción(es) en la hoja de forma guiada.');
+  lines.push('Objetivo: aplicar los cambios solicitados en la hoja respetando prioridad de instrucciones del usuario.');
   lines.push('Acciones:');
-  plan.actions.forEach(function (action, index) {
-    lines.push((index + 1) + '. ' + describeAction_(action));
-  });
+  lines.push('- Bloque de ejecución: ' + plan.actions.length + ' acción(es) coordinadas para aplicar formato/datos según el plan.');
   lines.push('Ubicación exacta:');
   plan.actions.forEach(function (action) {
     if (action.sheetName) {
@@ -236,15 +244,13 @@ function buildSummary_(plan) {
   });
   lines.push('Impacto:');
   lines.push(plan.actions.map(function (a) { return describeImpact_(a); }).join(' | '));
-  lines.push('Resultado esperado:');
-  lines.push('El archivo quedará actualizado exactamente como indican los pasos del plan.');
   return lines.join('\n');
 }
 
 function describeAction_(action) {
   var op = friendlyOp_(action.op || 'acción');
   var target = action.rangeA1 || action.targetA1 || action.sourceA1 || action.cell || 'sin rango';
-  var color = action.color ? ' con color ' + action.color : '';
+  var color = action.color ? ' con color ' + formatColorLabel_(action.color) : '';
   if (action.op === 'setBackgrounds' && Array.isArray(action.colors)) {
     color = ' con colores distintos por celda';
   }
@@ -278,4 +284,21 @@ function friendlyOp_(op) {
     setBorders: 'Aplicar bordes'
   };
   return map[op] || ('Aplicar ' + op);
+}
+
+function formatColorLabel_(hex) {
+  var normalized = String(hex || '').toLowerCase();
+  var names = {
+    '#ff0000': 'Rojo',
+    '#00ff00': 'Verde',
+    '#0000ff': 'Azul',
+    '#ffff00': 'Amarillo',
+    '#ffa500': 'Naranja',
+    '#800080': 'Morado',
+    '#000000': 'Negro',
+    '#ffffff': 'Blanco',
+    '#ffeb3b': 'Amarillo claro'
+  };
+  var name = names[normalized] || 'Color personalizado';
+  return name + ' (' + hex + ')';
 }
