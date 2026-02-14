@@ -2,7 +2,12 @@
   const state = {
     mode: 'IDLE',
     plan: null,
-    summary: ''
+    summary: '',
+    isBusy: false,
+    busyTask: '',
+    activeRequestId: 0,
+    applyingRequestId: 0,
+    cancelledRequestIds: {}
   };
   let scanProgressTimer = null;
 
@@ -40,6 +45,47 @@
       analyzeBtn.textContent = 'Editar';
       applyBtn.disabled = document.getElementById('dryRun').checked;
     }
+  }
+
+  function setBusy(isBusy, taskLabel) {
+    state.isBusy = !!isBusy;
+    state.busyTask = isBusy ? (taskLabel || 'acción en curso') : '';
+    var disabled = !!isBusy;
+    ['btnAnalyzeEdit', 'btnApply', 'btnScan', 'btnClearLogs', 'btnCopyPlan', 'promptInput', 'dryRun', 'safeMode', 'scanMode']
+      .forEach(function(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        if (disabled) {
+          el.setAttribute('disabled', 'disabled');
+        } else if (!(id === 'btnApply' && state.mode === 'IDLE')) {
+          el.removeAttribute('disabled');
+        }
+      });
+    if (!disabled && state.mode === 'PLANNED') {
+      document.getElementById('btnApply').disabled = document.getElementById('dryRun').checked;
+    }
+    updateCancelApplyVisibility();
+  }
+
+  function ensureNotBusy(nextActionLabel) {
+    if (!state.isBusy) return true;
+    showBusyOverlay('Espera a que termine "' + state.busyTask + '" antes de iniciar "' + nextActionLabel + '".');
+    return false;
+  }
+
+  function showBusyOverlay(message) {
+    document.getElementById('busyOverlayText').textContent = message || 'Espera a que termine la acción anterior para iniciar otra.';
+    document.getElementById('busyOverlay').style.display = 'flex';
+  }
+
+  function hideBusyOverlay() {
+    document.getElementById('busyOverlay').style.display = 'none';
+  }
+
+  function updateCancelApplyVisibility() {
+    var btn = document.getElementById('btnCancelApply');
+    var show = state.isBusy && state.busyTask === 'Aplicando';
+    btn.style.display = show ? 'inline-flex' : 'none';
   }
 
   function renderPlan(plan, summary) {
@@ -122,6 +168,7 @@
   }
 
   document.getElementById('btnAnalyzeEdit').addEventListener('click', function() {
+    if (!ensureNotBusy('Analizar/Editar')) return;
     const prompt = document.getElementById('promptInput').value.trim();
     if (!prompt) {
       setStatus('Prompt vacío.', true);
@@ -131,9 +178,13 @@
       dryRun: document.getElementById('dryRun').checked,
       safeMode: document.getElementById('safeMode').checked
     };
+    var requestId = ++state.activeRequestId;
     setStatus(state.mode === 'IDLE' ? 'Procesando...' : 'Editando plan...', false);
+    setBusy(true, state.mode === 'IDLE' ? 'Procesando' : 'Editando plan');
     if (state.mode === 'IDLE') {
       google.script.run.withSuccessHandler(function(result) {
+        if (requestId !== state.activeRequestId) return;
+        setBusy(false, '');
         if (result.error) {
           setStatus(result.error, true);
           return;
@@ -142,9 +193,15 @@
         setMode('PLANNED');
         setStatus('Plan generado.', false);
         refreshLogs();
+      }).withFailureHandler(function(err) {
+        if (requestId !== state.activeRequestId) return;
+        setBusy(false, '');
+        setStatus('Error al procesar: ' + (err && err.message ? err.message : err), true);
       }).buildPlan(prompt, flags);
     } else {
       google.script.run.withSuccessHandler(function(result) {
+        if (requestId !== state.activeRequestId) return;
+        setBusy(false, '');
         if (result.error) {
           setStatus(result.error, true);
           return;
@@ -153,11 +210,16 @@
         setMode('PLANNED');
         setStatus('Plan actualizado.', false);
         refreshLogs();
+      }).withFailureHandler(function(err) {
+        if (requestId !== state.activeRequestId) return;
+        setBusy(false, '');
+        setStatus('Error al editar plan: ' + (err && err.message ? err.message : err), true);
       }).editPlan(prompt, state.plan, flags);
     }
   });
 
   document.getElementById('btnApply').addEventListener('click', function() {
+    if (!ensureNotBusy('Aplicar')) return;
     if (!state.plan) {
       setStatus('Sin plan.', true);
       return;
@@ -166,8 +228,18 @@
       dryRun: document.getElementById('dryRun').checked,
       safeMode: document.getElementById('safeMode').checked
     };
+    var requestId = ++state.activeRequestId;
+    state.applyingRequestId = requestId;
+    setBusy(true, 'Aplicando');
     setStatus('Aplicando...', false);
     google.script.run.withSuccessHandler(function(result) {
+      if (state.cancelledRequestIds[requestId]) {
+        delete state.cancelledRequestIds[requestId];
+        return;
+      }
+      if (requestId !== state.activeRequestId) return;
+      setBusy(false, '');
+      state.applyingRequestId = 0;
       if (result.error) {
         setStatus(result.error, true);
         return;
@@ -177,6 +249,15 @@
       document.getElementById('promptInput').value = '';
       setStatus(result.message, false);
       refreshLogs();
+    }).withFailureHandler(function(err) {
+      if (state.cancelledRequestIds[requestId]) {
+        delete state.cancelledRequestIds[requestId];
+        return;
+      }
+      if (requestId !== state.activeRequestId) return;
+      setBusy(false, '');
+      state.applyingRequestId = 0;
+      setStatus('Error al aplicar: ' + (err && err.message ? err.message : err), true);
     }).applyPlan(state.plan, flags);
   });
 
@@ -187,9 +268,14 @@
   });
 
   document.getElementById('btnScan').addEventListener('click', function() {
+    if (!ensureNotBusy('Escanear proyecto')) return;
     const mode = document.getElementById('scanMode').value;
+    var requestId = ++state.activeRequestId;
+    setBusy(true, 'Escaneando proyecto');
     startScanProgress(mode);
     google.script.run.withSuccessHandler(function(result) {
+      if (requestId !== state.activeRequestId) return;
+      setBusy(false, '');
       stopScanProgress();
       if (result.error) {
         setStatus(result.error, true);
@@ -197,6 +283,11 @@
       }
       setStatus(result.message, false);
       refreshLogs();
+    }).withFailureHandler(function(err) {
+      if (requestId !== state.activeRequestId) return;
+      stopScanProgress();
+      setBusy(false, '');
+      setStatus('Error al escanear: ' + (err && err.message ? err.message : err), true);
     }).scanProjectAndUpdateContext({ mode });
   });
 
@@ -230,6 +321,7 @@
   }
 
   document.getElementById('btnCopyPlan').addEventListener('click', function() {
+    if (!ensureNotBusy('Copiar plan')) return;
     var statusEl = document.getElementById('status');
     var previousStatusText = statusEl.textContent || '';
     var previousIsError = (statusEl.className || '').indexOf('error') !== -1;
@@ -275,15 +367,36 @@
   });
 
   document.getElementById('btnClearLogs').addEventListener('click', function() {
+    if (!ensureNotBusy('Limpiar registros')) return;
+    var requestId = ++state.activeRequestId;
+    setBusy(true, 'Limpiando registros');
     setStatus('Limpiando registros...', false);
     google.script.run.withSuccessHandler(function(result) {
+      if (requestId !== state.activeRequestId) return;
+      setBusy(false, '');
       if (result && result.error) {
         setStatus(result.error, true);
         return;
       }
       setStatus('Registros limpiados.', false);
       refreshLogs();
+    }).withFailureHandler(function(err) {
+      if (requestId !== state.activeRequestId) return;
+      setBusy(false, '');
+      setStatus('Error al limpiar registros: ' + (err && err.message ? err.message : err), true);
     }).clearLogs();
+  });
+
+  document.getElementById('btnBusyOverlayOk').addEventListener('click', hideBusyOverlay);
+
+  document.getElementById('btnCancelApply').addEventListener('click', function() {
+    if (!state.applyingRequestId) return;
+    state.cancelledRequestIds[state.applyingRequestId] = true;
+    state.activeRequestId += 1;
+    state.applyingRequestId = 0;
+    setBusy(false, '');
+    setMode('PLANNED');
+    setStatus('Aplicación cancelada por el usuario (se canceló la espera en interfaz).', true);
   });
 
   setMode('IDLE');
