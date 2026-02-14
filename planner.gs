@@ -45,7 +45,8 @@ function buildPlanWithAi_(prompt, flags, currentPlan) {
   applyPromptPriorities_(parsed.plan, prompt);
   var validationError = validatePlan_(parsed.plan, flags);
   if (validationError) return { error: validationError };
-  return { plan: parsed.plan, summary: buildSummary_(parsed.plan) };
+  var summary = parsed.summary || buildSummary_(parsed.plan);
+  return { plan: parsed.plan, summary: summary };
 }
 
 function commandToPlan_(prompt, flags) {
@@ -91,6 +92,8 @@ function buildAiPayload_(prompt, flags, currentPlan, context) {
     'Responde SOLO con JSON válido.',
     'Formato esperado:',
     '{"plan":{"meta":{"version":"1.0","dryRun":false,"safeMode":true,"notes":""},"actions":[{"op":"..."}]},"summary":"..."}',
+    'El PLAN JSON y el summary profesional deben salir explícitamente de la lectura textual del comentario del usuario.',
+    'Usa el CONTEXTO solo como ayuda auxiliar para completar datos faltantes, nunca como fuente principal cuando contradice al comentario.',
     'El summary debe incluir: Objetivo, Acciones, Ubicación exacta, Impacto, Resultado esperado.',
     'Workflow obligatorio: (1) lee literalmente la instrucción del usuario, (2) extrae primero color/rango/objetivo exactos desde el texto, (3) recién después arma el JSON de acciones.',
     'La instrucción textual del usuario tiene prioridad total sobre cualquier patrón por defecto.',
