@@ -42,6 +42,7 @@ function buildPlanWithAi_(prompt, flags, currentPlan) {
   if (response.error) return response;
   var parsed = parseAiPlanResponse_(response);
   if (parsed.error) return parsed;
+  applyPromptPriorities_(parsed.plan, prompt);
   var validationError = validatePlan_(parsed.plan, flags);
   if (validationError) return { error: validationError };
   var summary = parsed.summary || buildSummary_(parsed.plan);
@@ -93,11 +94,7 @@ function buildAiPayload_(prompt, flags, currentPlan, context) {
     '{"plan":{"meta":{"version":"1.0","dryRun":false,"safeMode":true,"notes":""},"actions":[{"op":"..."}]},"summary":"..."}',
     'El PLAN JSON y el summary profesional deben salir explícitamente de la lectura textual del comentario del usuario.',
     'Usa el CONTEXTO solo como ayuda auxiliar para completar datos faltantes, nunca como fuente principal cuando contradice al comentario.',
-    'El summary debe incluir solo: Objetivo, Acciones, Ubicación exacta, Impacto.',
-    'No incluyas la sección "Resultado esperado".',
-    'En "Objetivo" no inicies con la cantidad de acciones; inicia con un resumen claro de lo que se ejecutará.',
-    'En "Acciones", explica por bloques (grupos lógicos), no línea por línea ni con pasos redundantes.',
-    'Cuando menciones colores, usa formato: NombreColor (#RRGGBB).',
+    'El summary debe incluir: Objetivo, Acciones, Ubicación exacta, Impacto, Resultado esperado.',
     'Workflow obligatorio: (1) lee literalmente la instrucción del usuario, (2) extrae primero color/rango/objetivo exactos desde el texto, (3) recién después arma el JSON de acciones.',
     'La instrucción textual del usuario tiene prioridad total sobre cualquier patrón por defecto.',
     'Si el usuario pide una escala de color específica (ej. escala de rojos), usa únicamente esa familia de color.',
@@ -127,6 +124,114 @@ function buildAiPayload_(prompt, flags, currentPlan, context) {
       { role: 'user', content: user }
     ]
   };
+}
+
+function applyPromptPriorities_(plan, prompt) {
+  if (!plan || !Array.isArray(plan.actions)) return;
+  var colorIntent = detectColorIntent_(prompt || '');
+  if (!colorIntent) return;
+
+  var ss = SpreadsheetApp.getActive();
+  for (var i = 0; i < plan.actions.length; i++) {
+    var action = plan.actions[i];
+    if (!action || ['setBackground', 'setBackgroundColor', 'setBackgrounds'].indexOf(action.op) === -1) continue;
+
+    if (action.op === 'setBackgrounds' && !Array.isArray(action.colors)) {
+      var dims = getActionRangeDimensions_(ss, action);
+      action.colors = buildColorScaleMatrix_(colorIntent.base, dims.rows, dims.cols);
+      action.color = null;
+      continue;
+    }
+
+    if ((action.op === 'setBackground' || action.op === 'setBackgroundColor') && !action.color) {
+      action.color = colorIntent.base;
+    }
+  }
+}
+
+function detectColorIntent_(prompt) {
+  var lower = String(prompt || '').toLowerCase();
+  var intents = [
+    { matches: ['escala de rojos', 'tonos rojos', 'rojo'], base: '#d32f2f' },
+    { matches: ['escala de verdes', 'tonos verdes', 'verde'], base: '#2e7d32' },
+    { matches: ['escala de azules', 'tonos azules', 'azul'], base: '#1565c0' },
+    { matches: ['escala de amarillos', 'tonos amarillos', 'amarillo'], base: '#f9a825' },
+    { matches: ['escala de morados', 'tonos morados', 'morado', 'violeta'], base: '#6a1b9a' }
+  ];
+  for (var i = 0; i < intents.length; i++) {
+    var intent = intents[i];
+    for (var j = 0; j < intent.matches.length; j++) {
+      if (lower.indexOf(intent.matches[j]) !== -1) return intent;
+    }
+  }
+  return null;
+}
+
+function getActionRangeDimensions_(ss, action) {
+  var rows = 1;
+  var cols = 1;
+  try {
+    var sheet = ss.getSheetByName(action.sheetName) || ss.getActiveSheet();
+    if (!sheet) return { rows: rows, cols: cols };
+    var rangeA1 = action.rangeA1;
+    if (!rangeA1) {
+      var active = ss.getActiveRange();
+      if (active) return { rows: active.getNumRows(), cols: active.getNumColumns() };
+      return { rows: rows, cols: cols };
+    }
+    var range = sheet.getRange(rangeA1);
+    rows = range.getNumRows();
+    cols = range.getNumColumns();
+  } catch (e) {
+    // keep defaults
+  }
+  return { rows: rows, cols: cols };
+}
+
+function buildColorScaleMatrix_(baseColor, rows, cols) {
+  var baseRgb = hexToRgb_(baseColor);
+  var matrix = [];
+  var total = Math.max(1, rows * cols - 1);
+  for (var r = 0; r < rows; r++) {
+    var row = [];
+    for (var c = 0; c < cols; c++) {
+      var idx = r * cols + c;
+      var ratio = idx / total;
+      var shade = mixRgb_(baseRgb, { r: 255, g: 255, b: 255 }, 0.65 - (ratio * 0.55));
+      row.push(rgbToHex_(shade));
+    }
+    matrix.push(row);
+  }
+  return matrix;
+}
+
+function hexToRgb_(hex) {
+  var safeHex = (hex || '#ffeb3b').replace('#', '');
+  if (!/^[0-9a-fA-F]{6}$/.test(safeHex)) safeHex = 'ffeb3b';
+  return {
+    r: parseInt(safeHex.substring(0, 2), 16),
+    g: parseInt(safeHex.substring(2, 4), 16),
+    b: parseInt(safeHex.substring(4, 6), 16)
+  };
+}
+
+function mixRgb_(a, b, alpha) {
+  var w = Math.max(0, Math.min(1, Number(alpha)));
+  return {
+    r: Math.round(a.r * (1 - w) + b.r * w),
+    g: Math.round(a.g * (1 - w) + b.g * w),
+    b: Math.round(a.b * (1 - w) + b.b * w)
+  };
+}
+
+function rgbToHex_(rgb) {
+  return '#' + channelToHex_(rgb.r) + channelToHex_(rgb.g) + channelToHex_(rgb.b);
+}
+
+function channelToHex_(value) {
+  var n = Math.max(0, Math.min(255, Number(value) || 0));
+  var hex = n.toString(16);
+  return hex.length === 1 ? '0' + hex : hex;
 }
 
 function callAiEndpoint_(endpoint, apiKey, payload) {
