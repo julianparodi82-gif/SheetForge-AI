@@ -253,6 +253,7 @@ function validateAction_(action, flags) {
       return 'Rango inválido: falta rangeA1';
     }
   }
+  expandColorFormula_(action, sheet || SpreadsheetApp.getActive().getActiveSheet());
   if (action.op === 'setBackgrounds' && Array.isArray(action.colors) && action.colors.length) {
     normalizeBackgroundRangeFromColors_(action, sheet || SpreadsheetApp.getActive().getActiveSheet());
   }
@@ -510,16 +511,49 @@ function expandPaintTargets_(action, sheet) {
 function normalizeRangeObject_(action, sheet) {
   if (!action || !sheet || action.rangeA1 || !action.range) return;
   var rangeObj = action.range;
-  if (rangeObj && rangeObj.startRow !== undefined && rangeObj.endRow !== undefined &&
-      rangeObj.startColumn !== undefined && rangeObj.endColumn !== undefined) {
-    var startRow = rangeObj.startRow + 1;
-    var startColumn = rangeObj.startColumn + 1;
-    var numRows = rangeObj.endRow - rangeObj.startRow;
-    var numColumns = rangeObj.endColumn - rangeObj.startColumn;
+  if (rangeObj) {
+    var startRowRaw = rangeObj.startRow !== undefined ? rangeObj.startRow : rangeObj.startRowIndex;
+    var endRowRaw = rangeObj.endRow !== undefined ? rangeObj.endRow : rangeObj.endRowIndex;
+    var startColumnRaw = rangeObj.startColumn !== undefined ? rangeObj.startColumn : rangeObj.startColumnIndex;
+    var endColumnRaw = rangeObj.endColumn !== undefined ? rangeObj.endColumn : rangeObj.endColumnIndex;
+    if (startRowRaw === undefined || endRowRaw === undefined || startColumnRaw === undefined || endColumnRaw === undefined) return;
+    var startRow = Number(startRowRaw) + 1;
+    var startColumn = Number(startColumnRaw) + 1;
+    var numRows = Number(endRowRaw) - Number(startRowRaw);
+    var numColumns = Number(endColumnRaw) - Number(startColumnRaw);
     if (numRows > 0 && numColumns > 0) {
       action.rangeA1 = sheet.getRange(startRow, startColumn, numRows, numColumns).getA1Notation();
     }
   }
+}
+
+function expandColorFormula_(action, sheet) {
+  if (!action || !sheet || action.op !== 'setBackground' || !action.colorFormula || !action.rangeA1) return;
+  var match = action.colorFormula.match(/RGB\s*\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)/i);
+  if (!match) return;
+  var baseR = Math.max(0, Math.min(255, Number(match[1])));
+  var baseG = Math.max(0, Math.min(255, Number(match[2])));
+  var baseB = Math.max(0, Math.min(255, Number(match[3])));
+  var range = sheet.getRange(action.rangeA1);
+  var rows = range.getNumRows();
+  var cols = range.getNumColumns();
+  if (rows <= 1 && cols <= 1) return;
+  var colors = [];
+  for (var r = 0; r < rows; r++) {
+    var row = [];
+    var rValue = Math.max(0, Math.min(255, baseR + r));
+    var hex = '#' + toHex_(rValue) + toHex_(baseG) + toHex_(baseB);
+    for (var c = 0; c < cols; c++) row.push(hex);
+    colors.push(row);
+  }
+  action.op = 'setBackgrounds';
+  action.colors = colors;
+  action.color = null;
+}
+
+function toHex_(n) {
+  var hex = Number(n).toString(16);
+  return hex.length === 1 ? '0' + hex : hex;
 }
 
 function requiresSheet_(op) {

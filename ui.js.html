@@ -68,7 +68,7 @@
 
   function getStepConnector(step) {
     var options = ['Primero', 'Después', 'A continuación', 'Luego', 'Por último'];
-    return options[Math.min(step - 1, options.length - 1)];
+    return options[(step - 1) % options.length];
   }
 
   function explainJsonLine(line) {
