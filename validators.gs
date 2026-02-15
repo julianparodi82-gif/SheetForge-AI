@@ -283,22 +283,16 @@ function validateAction_(action, flags) {
       action.rangeA1 = targetRange.getA1Notation();
     }
   }
-  if (action.op === 'setBackground' && !action.color) {
-    action.color = '#ffeb3b';
-  }
-  if (action.op === 'setBackgroundColor' && !action.color) {
-    action.color = '#ffeb3b';
+  if ((action.op === 'setBackground' || action.op === 'setBackgroundColor') && !action.color) {
+    return 'Color inválido: falta color';
   }
   if (action.op === 'setBackgrounds' && !Array.isArray(action.colors)) {
-    var sheetForColors = sheet || SpreadsheetApp.getActive().getActiveSheet();
-    var rangeForColors = sheetForColors.getRange(action.rangeA1);
-    var fallbackColor = action.color || '#ffeb3b';
-    action.colors = buildFillMatrix_(rangeForColors.getNumRows(), rangeForColors.getNumColumns(), fallbackColor);
+    return 'Color inválido: falta colors';
   }
   if (action.op === 'setBackgrounds' && Array.isArray(action.colors) && action.rangeA1) {
     var sheetForBgMatrix = sheet || SpreadsheetApp.getActive().getActiveSheet();
     var rangeForBgMatrix = sheetForBgMatrix.getRange(action.rangeA1);
-    action.colors = normalizeColorMatrix_(action.colors, rangeForBgMatrix.getNumRows(), rangeForBgMatrix.getNumColumns(), action.color || '#ffeb3b');
+    action.colors = normalizeColorMatrix_(action.colors, rangeForBgMatrix.getNumRows(), rangeForBgMatrix.getNumColumns(), action.color || '#000000');
   }
   if (action.op === 'setTextRotation' && action.rotation === undefined) {
     action.rotation = 0;
@@ -487,24 +481,9 @@ function normalizeCommonActionFields_(action) {
   if (!action.color && typeof action.bgColor === 'string') {
     action.color = action.bgColor;
   }
-  if (action.op === 'setBackgrounds' && Array.isArray(action.backgrounds)) {
-    if (!Array.isArray(action.colors) || isUniformFallbackColorMatrix_(action.colors, '#ffeb3b')) {
-      action.colors = action.backgrounds;
-    }
+  if (action.op === 'setBackgrounds' && Array.isArray(action.backgrounds) && !Array.isArray(action.colors)) {
+    action.colors = action.backgrounds;
   }
-}
-
-function isUniformFallbackColorMatrix_(matrix, fallbackColor) {
-  if (!Array.isArray(matrix) || !matrix.length) return false;
-  var fallback = String(fallbackColor || '').toLowerCase();
-  for (var r = 0; r < matrix.length; r++) {
-    var row = matrix[r];
-    if (!Array.isArray(row) || !row.length) return false;
-    for (var c = 0; c < row.length; c++) {
-      if (String(row[c] || '').toLowerCase() !== fallback) return false;
-    }
-  }
-  return true;
 }
 
 function expandPaintTargets_(action, sheet) {
@@ -637,7 +616,7 @@ function buildFillMatrix_(rows, cols, value) {
 }
 
 function normalizeColorMatrix_(inputColors, rows, cols, fallbackColor) {
-  var safeFallback = fallbackColor || '#ffeb3b';
+  var safeFallback = fallbackColor || '#000000';
   if (!Array.isArray(inputColors) || rows <= 0 || cols <= 0) {
     return buildFillMatrix_(rows, cols, safeFallback);
   }
