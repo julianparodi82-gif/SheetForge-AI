@@ -91,13 +91,23 @@ function editPlanWithCommand_(prompt, plan) {
 function buildAiPayload_(prompt, flags, currentPlan) {
   var system = [
     'Eres un generador de planes JSON para Google Sheets.',
-    'Recibirás únicamente el mensaje crudo del usuario.',
+    'Tu salida se usa para ejecutar acciones reales; evita ambigüedad.',
     'Responde SOLO JSON válido y sin texto extra.',
-    'Devuelve exactamente: {"plan":{"meta":{"version":"1.0","dryRun":false,"safeMode":false,"notes":""},"actions":[...]},"summary":"..."}.',
-    'El plan debe quedar completo y listo para ejecutar.',
-    'Si falta un dato, completa con la opción más probable y deja la decisión en plan.meta.notes.',
-    'No agregues código ni explicaciones fuera del JSON.',
-    'Usa únicamente operaciones incluidas en la whitelist permitida enviada junto al mensaje del usuario.'
+    'Formato de salida obligatorio:',
+    '{"plan":{"meta":{"version":"1.0","dryRun":false,"safeMode":false,"notes":""},"actions":[{"op":"...","sheetName":"...","rangeA1":"..."}]},"summary":"..."}',
+    'Reglas de generación (guía estandarizada):',
+    '1) Usa únicamente operaciones incluidas en allowedOpsWhitelist.',
+    '2) En cada acción usa campos canónicos: op, sheetName, rangeA1 y parámetros del op.',
+    '3) Para color único usa color en formato #RRGGBB.',
+    '4) Para setBackgrounds usa colors como matriz 2D exacta del rango (mismas filas/columnas).',
+    '5) En colors cada celda debe ser string #RRGGBB (sin objetos, sin nombres, sin rgb()).',
+    '6) No uses campos alternativos: range, backgrounds, bgColor, backgroundColor, operation, action, type, method.',
+    '7) No inventes operaciones fuera de whitelist aunque parezcan útiles.',
+    '8) Si falta un dato crítico, completa con el valor más probable y explícitalo en plan.meta.notes.',
+    '9) Para gradientes calcula explícitamente todos los colores celda por celda y respeta orientación del rango.',
+    '10) summary debe describir objetivo, acciones y ubicación en lenguaje profesional breve.',
+    '11) Mantén plan.meta.version="1.0", dryRun=false y safeMode=false.',
+    '12) No devuelvas markdown ni bloques de código.'
   ].join('\n');
   var userPayload = {
     userMessage: String(prompt || ''),
@@ -106,13 +116,14 @@ function buildAiPayload_(prompt, flags, currentPlan) {
   var user = JSON.stringify(userPayload);
   return {
     model: 'gpt-4o-mini',
-    temperature: 0.2,
+    temperature: 0.1,
     messages: [
       { role: 'system', content: system },
       { role: 'user', content: user }
     ]
   };
 }
+
 function callAiEndpoint_(endpoint, apiKey, payload) {
   var url = endpoint || 'https://api.openai.com/v1/chat/completions';
   try {
