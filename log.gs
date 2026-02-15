@@ -1,7 +1,7 @@
 function logEvent_(type, prompt, plan, status, message, affectedRanges, durationMs) {
   var sheet = SpreadsheetApp.getActive().getSheetByName('LOG');
   if (!sheet) return;
-  var user = Session.getActiveUser().getEmail() || 'desconocido';
+  var user = getSafeUserLabel_();
   var row = [
     new Date(),
     user,
@@ -13,6 +13,16 @@ function logEvent_(type, prompt, plan, status, message, affectedRanges, duration
     durationMs || 0
   ];
   sheet.appendRow(row);
+}
+
+function getSafeUserLabel_() {
+  try {
+    var email = Session.getActiveUser().getEmail();
+    if (email) return email;
+  } catch (e) {
+    // Sin permisos userinfo.email en algunos despliegues.
+  }
+  return 'desconocido';
 }
 
 function getLastLogs(n) {
