@@ -530,6 +530,15 @@ function normalizeAction_(action) {
 
 function normalizeCommonActionFields_(action) {
   if (!action) return;
+  if (!action.op) {
+    if (typeof action.operation === 'string') action.op = action.operation;
+    else if (typeof action.action === 'string') action.op = action.action;
+    else if (typeof action.type === 'string') action.op = action.type;
+    else if (typeof action.method === 'string') action.op = action.method;
+  }
+  if (typeof action.op === 'string') {
+    action.op = action.op.trim();
+  }
   if (!action.rangeA1 && typeof action.range === 'string') {
     action.rangeA1 = action.range;
   }
