@@ -111,28 +111,59 @@
 
   function formatPlanWithExplanation(plan) {
     if (!plan) return '';
-    var blocks = buildPlanBlockSummaries(plan);
-    var blockLines = blocks.map(function(text, index) {
-      return '<span class="line-explain">Bloque ' + (index + 1) + ': ' + escapeHtml(text) + '</span>';
+    var jsonLines = JSON.stringify(plan, null, 2).split('\n');
+    var formattedLines = [];
+    var stepIndex = 1;
+    jsonLines.forEach(function(line) {
+      var explanation = explainJsonLine(line);
+      if (explanation) {
+        var connector = getStepConnector(stepIndex);
+        formattedLines.push('<span class="line-explain">Paso ' + stepIndex + ': ' + connector + '. ' + escapeHtml(explanation) + '</span>');
+        stepIndex += 1;
+      }
+      formattedLines.push(escapeHtml(line));
     });
-    blockLines.push(escapeHtml(JSON.stringify(plan, null, 2)));
-    return blockLines.join('\n');
+    return formattedLines.join('\n');
   }
 
-  function buildPlanBlockSummaries(plan) {
-    if (!plan) return [];
-    var blocks = [];
-    if (plan.meta) {
-      blocks.push('Configuración general: versión ' + (plan.meta.version || '1.0') + ', dryRun=' + !!plan.meta.dryRun + ', safeMode=' + !!plan.meta.safeMode + '.');
-    }
-    if (Array.isArray(plan.actions) && plan.actions.length) {
-      blocks.push('Ejecución: ' + plan.actions.length + ' acción(es) agrupadas en orden de aplicación.');
-      plan.actions.forEach(function(action, index) {
-        var location = action.rangeA1 || action.targetA1 || action.sourceA1 || action.cell || 'sin rango';
-        blocks.push('Acción ' + (index + 1) + ': ' + (action.op || 'acción') + ' en ' + (action.sheetName || 'hoja activa') + ' (' + location + ').');
-      });
-    }
-    return blocks;
+  function getStepConnector(step) {
+    var options = ['Primero', 'Después', 'A continuación', 'Luego', 'Finalmente'];
+    return options[(step - 1) % options.length];
+  }
+
+  function explainJsonLine(line) {
+    var keyMatch = line.match(/"([^"]+)"\s*:/);
+    if (!keyMatch) return '';
+    var key = keyMatch[1];
+    var explanations = {
+      plan: 'Como profesor: este objeto es el contenedor principal; aquí vive todo el plan de ejecución.',
+      meta: 'Como profesor: esta sección define reglas globales antes de ejecutar acciones.',
+      version: 'Como profesor: indica la versión del formato JSON, útil para compatibilidad.',
+      dryRun: 'Como profesor: define si es simulación (`true`) o ejecución real (`false`).',
+      safeMode: 'Como profesor: controla restricciones para evitar operaciones riesgosas.',
+      notes: 'Como profesor: guarda notas de apoyo sobre el plan generado.',
+      actions: 'Como profesor: lista ordenada de acciones; se ejecutan de arriba hacia abajo.',
+      op: 'Como profesor: especifica la operación exacta que se aplicará en Sheets.',
+      sheetName: 'Como profesor: indica en qué hoja se ejecuta la acción.',
+      rangeA1: 'Como profesor: define el rango objetivo en notación A1.',
+      sourceA1: 'Como profesor: marca el origen cuando hay copia o movimiento.',
+      targetA1: 'Como profesor: marca el destino cuando hay copia o movimiento.',
+      cell: 'Como profesor: define una celda puntual cuando no se usa rango amplio.',
+      color: 'Como profesor: fija el color en formato hexadecimal (#RRGGBB).',
+      values: 'Como profesor: contiene la matriz de valores a escribir en las celdas.',
+      formula: 'Como profesor: contiene la fórmula a aplicar en una celda/rango.',
+      formulas: 'Como profesor: contiene varias fórmulas para aplicación masiva.',
+      rowIndex: 'Como profesor: indica la fila inicial de una operación estructural.',
+      numRows: 'Como profesor: indica cuántas filas afectan la operación.',
+      columnIndex: 'Como profesor: indica la columna inicial de una operación estructural.',
+      numColumns: 'Como profesor: indica cuántas columnas afectan la operación.',
+      fileId: 'Como profesor: identifica el archivo de Drive requerido por la acción.',
+      width: 'Como profesor: define ancho (px) para imágenes u objetos insertados.',
+      height: 'Como profesor: define alto (px) para imágenes u objetos insertados.',
+      name: 'Como profesor: representa el nuevo nombre en operaciones de renombrado.',
+      filename: 'Como profesor: representa el nombre final del archivo exportado.'
+    };
+    return explanations[key] || 'Como profesor: esta propiedad aporta configuración específica para la acción actual.';
   }
 
   function formatSummaryWithColors(summary) {
