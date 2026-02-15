@@ -233,6 +233,9 @@ function validatePlanStructureOnly_(plan, flags) {
   for (var i = 0; i < plan.actions.length; i++) {
     var action = plan.actions[i];
     if (!action || typeof action !== 'object') return 'Acción inválida en índice ' + i;
+    normalizeAction_(action);
+    normalizeCommonActionFields_(action);
+    inferOpFromActionShape_(action);
     if (!action.op || ALLOWED_OPS.indexOf(action.op) === -1) {
       return 'Operación no permitida: ' + action.op + ' (no está en whitelist)';
     }
@@ -536,8 +539,20 @@ function normalizeCommonActionFields_(action) {
   if (!action.color && typeof action.bgColor === 'string') {
     action.color = action.bgColor;
   }
-  if (action.op === 'setBackgrounds' && Array.isArray(action.backgrounds) && !Array.isArray(action.colors)) {
+  if (Array.isArray(action.backgrounds) && !Array.isArray(action.colors)) {
     action.colors = action.backgrounds;
+  }
+}
+
+
+function inferOpFromActionShape_(action) {
+  if (!action || action.op) return;
+  if (Array.isArray(action.colors) || Array.isArray(action.backgrounds)) {
+    action.op = 'setBackgrounds';
+    return;
+  }
+  if (typeof action.color === 'string') {
+    action.op = 'setBackground';
   }
 }
 
