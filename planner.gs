@@ -36,8 +36,7 @@ function buildPlanWithAi_(prompt, flags, currentPlan) {
   if (!apiKey) {
     return { error: 'IA no configurada. Define tu API key en Configuración.' };
   }
-  var context = getContext_();
-  var payload = buildAiPayload_(prompt, flags, currentPlan, context);
+  var payload = buildAiPayload_(prompt, flags, currentPlan);
   var response = callAiEndpoint_(endpoint, apiKey, payload);
   if (response.error) return response;
   var parsed = parseAiPlanResponse_(response);
