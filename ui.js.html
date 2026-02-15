@@ -7,7 +7,8 @@
     busyTask: '',
     activeRequestId: 0,
     applyingRequestId: 0,
-    cancelledRequestIds: {}
+    cancelledRequestIds: {},
+    aiDebug: null
   };
   let scanProgressTimer = null;
 
@@ -102,11 +103,32 @@
     return prefix + ': ' + (normalized || 'ocurrió un error inesperado.');
   }
 
-  function renderPlan(plan, summary) {
+  function renderPlan(plan, summary, aiDebug) {
     state.plan = plan;
     state.summary = summary || '';
+    state.aiDebug = aiDebug || null;
     document.getElementById('planJson').innerHTML = formatPlanWithExplanation(plan);
     document.getElementById('summary').innerHTML = formatSummaryWithColors(summary || '');
+    renderAiDebug(aiDebug || null);
+  }
+
+  function renderAiDebug(aiDebug) {
+    var payloadEl = document.getElementById('aiPayload');
+    var rawEl = document.getElementById('aiRaw');
+    var payloadTimeEl = document.getElementById('aiPayloadTime');
+    var rawTimeEl = document.getElementById('aiRawTime');
+    if (!aiDebug) {
+      payloadTimeEl.textContent = '';
+      rawTimeEl.textContent = '';
+      payloadEl.textContent = '';
+      rawEl.textContent = '';
+      return;
+    }
+    var stamp = aiDebug.timestamp ? ('Fecha: ' + aiDebug.timestamp) : '';
+    payloadTimeEl.textContent = stamp;
+    rawTimeEl.textContent = stamp;
+    payloadEl.textContent = aiDebug.payload || '';
+    rawEl.textContent = aiDebug.rawResponse || '';
   }
 
   function formatPlanWithExplanation(plan) {
@@ -236,7 +258,7 @@
           setStatus(result.error, true);
           return;
         }
-        renderPlan(result.plan, result.summary);
+        renderPlan(result.plan, result.summary, result.aiDebug || null);
         setMode('PLANNED');
         setStatus('Plan generado.', false);
         refreshLogs();
@@ -253,7 +275,7 @@
           setStatus(result.error, true);
           return;
         }
-        renderPlan(result.plan, result.summary);
+        renderPlan(result.plan, result.summary, result.aiDebug || null);
         setMode('PLANNED');
         setStatus('Plan actualizado.', false);
         refreshLogs();
@@ -292,7 +314,7 @@
         return;
       }
       setMode('IDLE');
-      renderPlan(null, '');
+      renderPlan(null, '', null);
       document.getElementById('promptInput').value = '';
       setStatus(result.message, false);
       refreshLogs();

@@ -61,6 +61,8 @@
       .log-status-ok { background: #d9f4dd; padding: 1px 4px; border-radius: 4px; font-weight: 700; }
       .log-status-error { background: #ffd9d9; padding: 1px 4px; border-radius: 4px; font-weight: 700; }
       .log-label { font-weight: 700; }
+      .violet-box { background: #f3e8ff; border: 1px solid #d8b4fe; border-radius: 10px; padding: 8px; }
+      .violet-title { color: #6b21a8; font-weight: 700; margin-bottom: 6px; font-size: 12px; }
       .cancel-apply-btn { display: none; border: none; background: #fbe9e7; color: #b71c1c; width: 18px; height: 18px; border-radius: 50%; font-size: 12px; line-height: 18px; padding: 0; cursor: pointer; margin-left: 12px; }
       .cancel-apply-btn:hover { background: #ffcdd2; }
       .overlay { position: absolute; inset: 0; background: rgba(15,45,31,0.2); display: none; align-items: center; justify-content: center; z-index: 30; }
@@ -127,6 +129,20 @@
           <div class="logs-actions">
             <button id="btnClearLogs" class="tertiary" type="button">Limpiar registros</button>
           </div>
+        </div>
+      </details>
+      <details class="panel tooltip tooltip-top" data-tooltip="Texto exacto enviado a la IA en la última solicitud." open>
+        <summary>Enviado a IA (exacto)</summary>
+        <div class="panel-content violet-box">
+          <div id="aiPayloadTime" class="violet-title"></div>
+          <pre id="aiPayload" class="scrollable"></pre>
+        </div>
+      </details>
+      <details class="panel tooltip tooltip-top" data-tooltip="Texto exacto devuelto por la IA en la última solicitud." open>
+        <summary>Respuesta IA (exacta)</summary>
+        <div class="panel-content violet-box">
+          <div id="aiRawTime" class="violet-title"></div>
+          <pre id="aiRaw" class="scrollable"></pre>
         </div>
       </details>
       <div id="busyOverlay" class="overlay" aria-hidden="true">

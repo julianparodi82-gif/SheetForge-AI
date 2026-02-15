@@ -45,7 +45,15 @@ function buildPlanWithAi_(prompt, flags, currentPlan) {
   var validationError = validatePlanReadOnly_(parsed.plan, flags);
   if (validationError) return { error: validationError };
   var summary = parsed.summary || buildSummary_(parsed.plan);
-  return { plan: parsed.plan, summary: summary };
+  return {
+    plan: parsed.plan,
+    summary: summary,
+    aiDebug: {
+      timestamp: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm'),
+      payload: JSON.stringify(payload, null, 2),
+      rawResponse: response.text
+    }
+  };
 }
 
 function commandToPlan_(prompt, flags) {

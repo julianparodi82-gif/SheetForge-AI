@@ -296,12 +296,17 @@ function validateAction_(action, flags) {
   if ((action.op === 'setBackground' || action.op === 'setBackgroundColor') && !action.color) {
     return 'Color inválido: falta color';
   }
+  if (action.op === 'setBackground' || action.op === 'setBackgroundColor') {
+    action.color = normalizeColorValue_(action.color);
+    if (!action.color) return 'Color inválido: ' + action.color;
+  }
   if (action.op === 'setBackgrounds' && !Array.isArray(action.colors)) {
     return 'Color inválido: falta colors';
   }
   if (action.op === 'setBackgrounds' && Array.isArray(action.colors) && action.rangeA1) {
     var sheetForBgMatrix = sheet || SpreadsheetApp.getActive().getActiveSheet();
     var rangeForBgMatrix = sheetForBgMatrix.getRange(action.rangeA1);
+    action.colors = normalizeColorMatrixValues_(action.colors);
     if (!isStrictHexColorMatrix_(action.colors, rangeForBgMatrix.getNumRows(), rangeForBgMatrix.getNumColumns())) {
       return 'Color inválido: colors debe ser matriz ' + rangeForBgMatrix.getNumRows() + 'x' + rangeForBgMatrix.getNumColumns() + ' con valores #RRGGBB';
     }
@@ -677,6 +682,49 @@ function isStrictHexColorMatrix_(colors, rows, cols) {
     }
   }
   return true;
+}
+
+function normalizeColorMatrixValues_(colors) {
+  if (!Array.isArray(colors)) return colors;
+  if (!Array.isArray(colors[0])) {
+    return colors.map(function(cell) { return normalizeColorValue_(cell); });
+  }
+  return colors.map(function(row) {
+    return Array.isArray(row)
+      ? row.map(function(cell) { return normalizeColorValue_(cell); })
+      : row;
+  });
+}
+
+function normalizeColorValue_(value) {
+  if (typeof value === 'string') {
+    var v = value.trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(v)) return v.toLowerCase();
+    var rgbMatch = v.match(/^rgb\s*\((\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i);
+    if (rgbMatch) {
+      return '#' + toHexColorChannel_(rgbMatch[1]) + toHexColorChannel_(rgbMatch[2]) + toHexColorChannel_(rgbMatch[3]);
+    }
+    var named = {
+      blanco: '#ffffff', white: '#ffffff',
+      negro: '#000000', black: '#000000',
+      gris: '#808080', gray: '#808080', grey: '#808080',
+      rojo: '#ff0000', red: '#ff0000',
+      verde: '#00ff00', green: '#00ff00',
+      azul: '#0000ff', blue: '#0000ff'
+    };
+    var mapped = named[v.toLowerCase()];
+    return mapped || null;
+  }
+  if (value && typeof value === 'object' && value.red !== undefined && value.green !== undefined && value.blue !== undefined) {
+    return '#' + toHexColorChannel_(value.red) + toHexColorChannel_(value.green) + toHexColorChannel_(value.blue);
+  }
+  return null;
+}
+
+function toHexColorChannel_(n) {
+  var num = Math.max(0, Math.min(255, Number(n)));
+  var hex = Math.round(num).toString(16);
+  return hex.length === 1 ? '0' + hex : hex;
 }
 
 function normalizeBackgroundRangeFromColors_(action, sheet) {
