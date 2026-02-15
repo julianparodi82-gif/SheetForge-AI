@@ -42,7 +42,7 @@ function buildPlanWithAi_(prompt, flags, currentPlan) {
   if (response.error) return response;
   var parsed = parseAiPlanResponse_(response);
   if (parsed.error) return parsed;
-  var validationError = validatePlanWithoutMutation_(parsed.plan, flags);
+  var validationError = validatePlanReadOnly_(parsed.plan, flags);
   if (validationError) return { error: validationError };
   var summary = parsed.summary || buildSummary_(parsed.plan);
   return { plan: parsed.plan, summary: summary };
@@ -105,6 +105,7 @@ function buildAiPayload_(prompt, flags, currentPlan, context) {
     'El plan JSON lo define la IA; evita depender de post-procesamiento de código para completar colores o rangos críticos.',
     'Si el usuario pide una escala de color específica (ej. escala de rojos), usa únicamente esa familia de color.',
     'Si el usuario describe una progresión RGB (ej. "aumenta +1 el rojo por fila"), genera la matriz `colors` celda por celda respetando exactamente esa regla.',
+    'Formato obligatorio para `colors`: matriz 2D del tamaño exacto del rango y cada celda en HEX `#RRGGBB` (no usar objetos `{red,green,blue}`).',
     'Para `setBackgrounds`, evita campos conflictivos: usa `colors` como fuente principal y no mezcles colores por defecto (#ffeb3b) cuando el usuario ya definió la lógica.',
     'Si falta información, completa con la decisión más lógica posible derivada del texto del usuario y del contexto (sin usar paletas predefinidas no solicitadas).',
     'Defaults permitidos SOLO cuando ese dato no exista en la instrucción del usuario: fontFamily=Arial, fontStyle=normal, fontLine=none, fontColor=#000000, fontWeight=normal, fontSize=10, horizontalAlignment=left, verticalAlignment=top, wrap=false, numberFormat=@, textRotation=0, border=true.',
@@ -134,16 +135,6 @@ function buildAiPayload_(prompt, flags, currentPlan, context) {
       { role: 'user', content: user }
     ]
   };
-}
-
-function validatePlanWithoutMutation_(plan, flags) {
-  var safePlan;
-  try {
-    safePlan = JSON.parse(JSON.stringify(plan));
-  } catch (e) {
-    return 'Plan inválido: no se pudo validar estructura.';
-  }
-  return validatePlan_(safePlan, flags);
 }
 
 function callAiEndpoint_(endpoint, apiKey, payload) {

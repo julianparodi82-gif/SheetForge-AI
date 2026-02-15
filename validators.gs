@@ -215,6 +215,16 @@ function validatePlan_(plan, flags) {
   return null;
 }
 
+function validatePlanReadOnly_(plan, flags) {
+  var cloned;
+  try {
+    cloned = JSON.parse(JSON.stringify(plan));
+  } catch (e) {
+    return 'Plan inválido: no se pudo validar estructura.';
+  }
+  return validatePlan_(cloned, flags);
+}
+
 function validateAction_(action, flags) {
   if (flags && flags.safeMode) {
     var blockedOps = getSafeBlockedOps_();
@@ -292,7 +302,9 @@ function validateAction_(action, flags) {
   if (action.op === 'setBackgrounds' && Array.isArray(action.colors) && action.rangeA1) {
     var sheetForBgMatrix = sheet || SpreadsheetApp.getActive().getActiveSheet();
     var rangeForBgMatrix = sheetForBgMatrix.getRange(action.rangeA1);
-    action.colors = normalizeColorMatrix_(action.colors, rangeForBgMatrix.getNumRows(), rangeForBgMatrix.getNumColumns(), action.color || '#000000');
+    if (!isStrictHexColorMatrix_(action.colors, rangeForBgMatrix.getNumRows(), rangeForBgMatrix.getNumColumns())) {
+      return 'Color inválido: colors debe ser matriz ' + rangeForBgMatrix.getNumRows() + 'x' + rangeForBgMatrix.getNumColumns() + ' con valores #RRGGBB';
+    }
   }
   if (action.op === 'setTextRotation' && action.rotation === undefined) {
     action.rotation = 0;
@@ -653,6 +665,18 @@ function normalizeColorMatrix_(inputColors, rows, cols, fallbackColor) {
     paletteMatrix.push(paletteRow);
   }
   return paletteMatrix;
+}
+
+function isStrictHexColorMatrix_(colors, rows, cols) {
+  if (!Array.isArray(colors) || colors.length !== rows) return false;
+  for (var r = 0; r < rows; r++) {
+    var row = colors[r];
+    if (!Array.isArray(row) || row.length !== cols) return false;
+    for (var c = 0; c < cols; c++) {
+      if (typeof row[c] !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(row[c])) return false;
+    }
+  }
+  return true;
 }
 
 function normalizeBackgroundRangeFromColors_(action, sheet) {
