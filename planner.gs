@@ -103,15 +103,17 @@ function buildAiPayload_(prompt, flags, currentPlan) {
     '5) En colors cada celda debe ser string #RRGGBB (sin objetos, sin nombres, sin rgb()).',
     '6) No uses campos alternativos: range, backgrounds, bgColor, backgroundColor, operation, action, type, method.',
     '7) No inventes operaciones fuera de whitelist aunque parezcan útiles.',
-    '8) Si falta un dato crítico, completa con el valor más probable y explícitalo en plan.meta.notes.',
-    '9) Para gradientes calcula explícitamente todos los colores celda por celda y respeta orientación del rango.',
-    '10) summary debe describir objetivo, acciones y ubicación en lenguaje profesional breve.',
-    '11) Mantén plan.meta.version="1.0", dryRun=false y safeMode=false.',
-    '12) No devuelvas markdown ni bloques de código.'
+    '8) Si falta sheetName o rangeA1, usa activeContext.sheetName y activeContext.rangeA1 recibidos en el mensaje; no inventes ubicaciones.',
+    '9) Si falta un dato crítico distinto de ubicación, completa con el valor más probable y explícitalo en plan.meta.notes.',
+    '10) Para gradientes calcula explícitamente todos los colores celda por celda y respeta orientación del rango.',
+    '11) summary debe describir objetivo, acciones y ubicación en lenguaje profesional breve.',
+    '12) Mantén plan.meta.version="1.0", dryRun=false y safeMode=false.',
+    '13) No devuelvas markdown ni bloques de código.'
   ].join('\n');
   var userPayload = {
     userMessage: String(prompt || ''),
-    allowedOpsWhitelist: (typeof ALLOWED_OPS !== 'undefined' && Array.isArray(ALLOWED_OPS)) ? ALLOWED_OPS : []
+    allowedOpsWhitelist: (typeof ALLOWED_OPS !== 'undefined' && Array.isArray(ALLOWED_OPS)) ? ALLOWED_OPS : [],
+    activeContext: getActiveContextForAi_()
   };
   var user = JSON.stringify(userPayload);
   return {
@@ -122,6 +124,21 @@ function buildAiPayload_(prompt, flags, currentPlan) {
       { role: 'user', content: user }
     ]
   };
+}
+
+
+function getActiveContextForAi_() {
+  try {
+    var ss = SpreadsheetApp.getActive();
+    var sheet = ss && ss.getActiveSheet ? ss.getActiveSheet() : null;
+    var range = ss && ss.getActiveRange ? ss.getActiveRange() : null;
+    return {
+      sheetName: sheet ? sheet.getName() : null,
+      rangeA1: range ? range.getA1Notation() : null
+    };
+  } catch (e) {
+    return { sheetName: null, rangeA1: null };
+  }
 }
 
 function callAiEndpoint_(endpoint, apiKey, payload) {
