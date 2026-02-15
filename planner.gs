@@ -101,6 +101,8 @@ function buildAiPayload_(prompt, flags, currentPlan, context) {
     'Workflow obligatorio: (1) lee literalmente la instrucción del usuario, (2) extrae primero color/rango/objetivo exactos desde el texto, (3) recién después arma el JSON de acciones.',
     'La instrucción textual del usuario tiene prioridad total sobre cualquier patrón por defecto.',
     'Si el usuario pide una escala de color específica (ej. escala de rojos), usa únicamente esa familia de color.',
+    'Si el usuario describe una progresión RGB (ej. "aumenta +1 el rojo por fila"), genera la matriz `colors` celda por celda respetando exactamente esa regla.',
+    'Para `setBackgrounds`, evita campos conflictivos: usa `colors` como fuente principal y no mezcles colores por defecto (#ffeb3b) cuando el usuario ya definió la lógica.',
     'Si falta información, completa con decisiones razonables derivadas del texto del usuario y del contexto (sin usar paletas predefinidas no solicitadas).',
     'Completa bordes, colores y ubicaciones con valores razonables solo cuando el usuario no los indique explícitamente.',
     'Respeta exactamente los valores proporcionados por el usuario (color, ubicación, bordes, etc.) y evita cambiarlos.',

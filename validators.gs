@@ -487,6 +487,24 @@ function normalizeCommonActionFields_(action) {
   if (!action.color && typeof action.bgColor === 'string') {
     action.color = action.bgColor;
   }
+  if (action.op === 'setBackgrounds' && Array.isArray(action.backgrounds)) {
+    if (!Array.isArray(action.colors) || isUniformFallbackColorMatrix_(action.colors, '#ffeb3b')) {
+      action.colors = action.backgrounds;
+    }
+  }
+}
+
+function isUniformFallbackColorMatrix_(matrix, fallbackColor) {
+  if (!Array.isArray(matrix) || !matrix.length) return false;
+  var fallback = String(fallbackColor || '').toLowerCase();
+  for (var r = 0; r < matrix.length; r++) {
+    var row = matrix[r];
+    if (!Array.isArray(row) || !row.length) return false;
+    for (var c = 0; c < row.length; c++) {
+      if (String(row[c] || '').toLowerCase() !== fallback) return false;
+    }
+  }
+  return true;
 }
 
 function expandPaintTargets_(action, sheet) {

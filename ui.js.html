@@ -136,34 +136,36 @@
     if (!keyMatch) return '';
     var key = keyMatch[1];
     var explanations = {
-      plan: 'Como profesor: este objeto es el contenedor principal; aquí vive todo el plan de ejecución.',
-      meta: 'Como profesor: esta sección define reglas globales antes de ejecutar acciones.',
-      version: 'Como profesor: indica la versión del formato JSON, útil para compatibilidad.',
-      dryRun: 'Como profesor: define si es simulación (`true`) o ejecución real (`false`).',
-      safeMode: 'Como profesor: controla restricciones para evitar operaciones riesgosas.',
-      notes: 'Como profesor: guarda notas de apoyo sobre el plan generado.',
-      actions: 'Como profesor: lista ordenada de acciones; se ejecutan de arriba hacia abajo.',
-      op: 'Como profesor: especifica la operación exacta que se aplicará en Sheets.',
-      sheetName: 'Como profesor: indica en qué hoja se ejecuta la acción.',
-      rangeA1: 'Como profesor: define el rango objetivo en notación A1.',
-      sourceA1: 'Como profesor: marca el origen cuando hay copia o movimiento.',
-      targetA1: 'Como profesor: marca el destino cuando hay copia o movimiento.',
-      cell: 'Como profesor: define una celda puntual cuando no se usa rango amplio.',
-      color: 'Como profesor: fija el color en formato hexadecimal (#RRGGBB).',
-      values: 'Como profesor: contiene la matriz de valores a escribir en las celdas.',
-      formula: 'Como profesor: contiene la fórmula a aplicar en una celda/rango.',
-      formulas: 'Como profesor: contiene varias fórmulas para aplicación masiva.',
-      rowIndex: 'Como profesor: indica la fila inicial de una operación estructural.',
-      numRows: 'Como profesor: indica cuántas filas afectan la operación.',
-      columnIndex: 'Como profesor: indica la columna inicial de una operación estructural.',
-      numColumns: 'Como profesor: indica cuántas columnas afectan la operación.',
-      fileId: 'Como profesor: identifica el archivo de Drive requerido por la acción.',
-      width: 'Como profesor: define ancho (px) para imágenes u objetos insertados.',
-      height: 'Como profesor: define alto (px) para imágenes u objetos insertados.',
-      name: 'Como profesor: representa el nuevo nombre en operaciones de renombrado.',
-      filename: 'Como profesor: representa el nombre final del archivo exportado.'
+      actions: 'Estructura principal: la lista "actions" contiene las acciones que se ejecutarán en orden, de arriba hacia abajo.',
+      op: 'Tipo de operación: aquí se define el método de Google Sheets que se aplicará (por ejemplo, "setBackgrounds").',
+      range: 'Rango objetivo: este campo indica dónde se aplicará la acción dentro de la hoja.',
+      sheetName: 'Hoja destino: define en qué hoja se ejecutará esta operación.',
+      colors: 'Matriz de colores: debe ser bidimensional y coincidir con el tamaño exacto del rango.',
+      rangeA1: 'Rango alternativo: es la misma referencia en notación A1 para ubicar la acción con precisión.',
+      backgrounds: 'Matriz de fondos: define colores por celda, fila por fila, para crear patrones o degradados.',
+      meta: 'Sección global: contiene configuraciones que afectan la ejecución completa del plan.',
+      notes: 'Notas: campo opcional para documentar el objetivo o contexto del plan.',
+      dryRun: 'Modo simulación: `false` ejecuta cambios reales; `true` solo simula sin aplicar.',
+      safeMode: 'Modo seguro: agrega restricciones para reducir riesgo en operaciones sensibles.',
+      version: 'Versión: identifica el formato del plan para compatibilidad futura.',
+      sourceA1: 'Rango origen: define desde dónde se toma la información en acciones de copia/movimiento.',
+      targetA1: 'Rango destino: define a dónde se envía la información en acciones de copia/movimiento.',
+      cell: 'Celda puntual: permite aplicar una acción específica en una celda concreta.',
+      color: 'Color único: define un color en hexadecimal (#RRGGBB) para acciones puntuales.',
+      values: 'Matriz de valores: contiene los datos que se escribirán en el rango indicado.',
+      formula: 'Fórmula: expresa la operación que calculará el contenido de la celda/rango.',
+      formulas: 'Matriz de fórmulas: permite aplicar fórmulas diferentes en múltiples celdas.',
+      rowIndex: 'Fila inicial: marca el inicio de operaciones estructurales por fila.',
+      numRows: 'Cantidad de filas: indica cuántas filas abarca la acción.',
+      columnIndex: 'Columna inicial: marca el inicio de operaciones estructurales por columna.',
+      numColumns: 'Cantidad de columnas: indica cuántas columnas abarca la acción.',
+      fileId: 'Archivo de Drive: identificador del archivo usado por la operación.',
+      width: 'Ancho: tamaño horizontal en píxeles para elementos insertados.',
+      height: 'Alto: tamaño vertical en píxeles para elementos insertados.',
+      name: 'Nombre: texto utilizado al renombrar entidades (hoja/archivo).',
+      filename: 'Nombre de archivo: etiqueta final para exportaciones.'
     };
-    return explanations[key] || 'Como profesor: esta propiedad aporta configuración específica para la acción actual.';
+    return explanations[key] || '';
   }
 
   function formatSummaryWithColors(summary) {
