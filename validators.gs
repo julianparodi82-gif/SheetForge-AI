@@ -256,8 +256,11 @@ function validatePlanStructureOnly_(plan, flags) {
       var sheet = SpreadsheetApp.getActive().getSheetByName(action.sheetName);
       if (!sheet) return 'Hoja no encontrada: ' + action.sheetName;
       var range = sheet.getRange(action.rangeA1);
-      if (!isStrictHexColorMatrix_(action.colors, range.getNumRows(), range.getNumColumns())) {
-        return 'Color inválido: colors debe ser matriz ' + range.getNumRows() + 'x' + range.getNumColumns() + ' con valores #RRGGBB';
+      var expectedRows = range.getNumRows();
+      var expectedCols = range.getNumColumns();
+      action.colors = normalizeColorMatrixValues_(action.colors, expectedRows, expectedCols);
+      if (!isStrictHexColorMatrix_(action.colors, expectedRows, expectedCols)) {
+        return 'Color inválido: colors debe ser matriz ' + expectedRows + 'x' + expectedCols + ' con valores #RRGGBB';
       }
     }
   }
