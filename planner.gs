@@ -36,15 +36,14 @@ function buildPlanWithAi_(prompt, flags, currentPlan) {
   if (!apiKey) {
     return { error: 'IA no configurada. Define tu API key en Configuración.' };
   }
-  var context = getContext_();
-  var payload = buildAiPayload_(prompt, flags, currentPlan, context);
+  var payload = buildAiPayload_(prompt, flags, currentPlan);
   var response = callAiEndpoint_(endpoint, apiKey, payload);
   if (response.error) return response;
   var parsed = parseAiPlanResponse_(response);
   if (parsed.error) return parsed;
-  var validationError = validatePlanReadOnly_(parsed.plan, flags);
+  var validationError = validatePlanStructureOnly_(parsed.plan, flags);
   if (validationError) return { error: validationError };
-  var summary = parsed.summary || buildSummary_(parsed.plan);
+  var summary = normalizeSummary_(parsed.summary) || buildSummary_(parsed.plan);
   return {
     plan: parsed.plan,
     summary: summary,
@@ -93,48 +92,25 @@ function editPlanWithCommand_(prompt, plan) {
   return { error: 'Comando de edición no soportado.' };
 }
 
-function buildAiPayload_(prompt, flags, currentPlan, context) {
+function buildAiPayload_(prompt, flags, currentPlan) {
+  var maxExplicitColorsCells = 2000;
   var system = [
-    'Eres un generador de PLAN JSON para Google Sheets.',
-    'Responde SOLO con JSON válido.',
-    'Formato esperado:',
-    '{"plan":{"meta":{"version":"1.0","dryRun":false,"safeMode":true,"notes":""},"actions":[{"op":"..."}]},"summary":"..."}',
-    'El PLAN JSON y el summary profesional deben salir explícitamente de la lectura textual del comentario del usuario.',
-    'Usa el CONTEXTO solo como ayuda auxiliar para completar datos faltantes, nunca como fuente principal cuando contradice al comentario.',
-    'Devuelve el plan final completo desde la IA (sin depender de edición posterior por código).',
-    'El summary debe incluir solo: Objetivo, Acciones, Ubicación exacta, Impacto.',
-    'No incluyas la sección "Resultado esperado".',
-    'En "Objetivo" no inicies con la cantidad de acciones; inicia con un resumen claro de lo que se ejecutará.',
-    'En "Acciones", explica por bloques (grupos lógicos), no línea por línea ni con pasos redundantes.',
-    'Cuando menciones colores, usa formato: NombreColor (#RRGGBB).',
-    'Workflow obligatorio: (1) lee literalmente la instrucción del usuario, (2) extrae primero color/rango/objetivo exactos desde el texto, (3) recién después arma el JSON de acciones.',
-    'La instrucción textual del usuario tiene prioridad total sobre cualquier patrón por defecto.',
-    'No uses defaults de color automáticos: NO inventes #ffeb3b ni paletas si el usuario no las pidió.',
-    'El plan JSON lo define la IA; evita depender de post-procesamiento de código para completar colores o rangos críticos.',
-    'Si el usuario pide una escala de color específica (ej. escala de rojos), usa únicamente esa familia de color.',
-    'Si el usuario describe una progresión RGB (ej. "aumenta +1 el rojo por fila"), genera la matriz `colors` celda por celda respetando exactamente esa regla.',
-    'Formato obligatorio para `colors`: matriz 2D del tamaño exacto del rango y cada celda en HEX `#RRGGBB` (no usar objetos `{red,green,blue}`).',
-    'Para `setBackgrounds`, evita campos conflictivos: usa `colors` como fuente principal y no mezcles colores por defecto (#ffeb3b) cuando el usuario ya definió la lógica.',
-    'Si falta información, completa con la decisión más lógica posible derivada del texto del usuario y del contexto (sin usar paletas predefinidas no solicitadas).',
-    'Defaults permitidos SOLO cuando ese dato no exista en la instrucción del usuario: fontFamily=Arial, fontStyle=normal, fontLine=none, fontColor=#000000, fontWeight=normal, fontSize=10, horizontalAlignment=left, verticalAlignment=top, wrap=false, numberFormat=@, textRotation=0, border=true.',
-    'Regla estricta: si el usuario sí menciona ese dato, respétalo 100% y no lo reemplaces.',
-    'Completa bordes, colores y ubicaciones con valores razonables solo cuando el usuario no los indique explícitamente.',
-    'Respeta exactamente los valores proporcionados por el usuario (color, ubicación, bordes, etc.) y evita cambiarlos.',
-    'No ejecutes acciones. Solo planifica.'
+    'Eres un generador de planes JSON para Google Sheets.',
+    'Responde SOLO JSON válido con este esquema:',
+    '{"plan":{"meta":{"version":"1.0","dryRun":false,"safeMode":true,"notes":""},"actions":[{"op":"...","sheetName":"...","rangeA1":"..."}]},"summary":{"objetivo":"...","acciones":["..."],"ubicacion":"Hoja!Rango","impacto":"..."}}',
+    'No incluyas texto fuera del JSON.',
+    'Usa SOLO campos canónicos para ubicación y color: sheetName, rangeA1, color, colors.',
+    'No uses campos alternativos o duplicados: range, backgrounds, bgColor, backgroundColor, cell (salvo que el op lo requiera).',
+    'Convierte cualquier formato de color de entrada (nombre, rgb, rgba, hsl, objetos RGB) al formato canónico de Google Sheets: HEX #RRGGBB.',
+    'Para setBackgrounds incluye colors como matriz 2D del tamaño exacto del rango.',
+    'La IA debe devolver colors completamente calculado y listo para ejecutar (sin depender de edición posterior).',
+    'No inventes paletas si el usuario no las pide.',
+    'Si falta un dato crítico, decide la opción más lógica y escríbela en plan.meta.notes.',
+    'No uses contexto externo: utiliza únicamente el mensaje crudo del usuario para construir el plan.',
+    'Si una progresión RGB está especificada, respétala de forma determinística (canales, base, paso y clamp).',
+    'Para rangos con más de ' + maxExplicitColorsCells + ' celdas evita matrices explícitas gigantes y usa una acción compacta cuando sea viable.'
   ].join('\n');
-  var user = [
-    'INSTRUCCIÓN (PRIORIDAD MÁXIMA):',
-    prompt,
-    '',
-    'FLAGS:',
-    JSON.stringify(flags || {}),
-    '',
-    'PLAN_ACTUAL:',
-    currentPlan ? JSON.stringify(currentPlan) : 'null',
-    '',
-    'CONTEXTO:',
-    JSON.stringify(context)
-  ].join('\n');
+  var user = String(prompt || '');
   return {
     model: 'gpt-4o-mini',
     temperature: 0.2,
@@ -143,6 +119,24 @@ function buildAiPayload_(prompt, flags, currentPlan, context) {
       { role: 'user', content: user }
     ]
   };
+}
+
+function normalizeSummary_(summary) {
+  if (!summary) return '';
+  if (typeof summary === 'string') return summary;
+  if (typeof summary === 'object') {
+    var lines = [];
+    lines.push('Objetivo: ' + (summary.objetivo || '')); 
+    lines.push('Acciones:');
+    var acciones = Array.isArray(summary.acciones) ? summary.acciones : [];
+    for (var i = 0; i < acciones.length; i++) {
+      lines.push('- ' + acciones[i]);
+    }
+    lines.push('Ubicación exacta: ' + (summary.ubicacion || ''));
+    lines.push('Impacto: ' + (summary.impacto || ''));
+    return lines.join('\n').trim();
+  }
+  return '';
 }
 
 function callAiEndpoint_(endpoint, apiKey, payload) {
