@@ -688,39 +688,15 @@ function isStrictHexColorMatrix_(colors, rows, cols) {
 
 function normalizeColorMatrixValues_(colors, rows, cols) {
   if (!Array.isArray(colors)) return colors;
-  var targetRows = Math.max(1, Number(rows) || 0);
-  var targetCols = Math.max(1, Number(cols) || 0);
   var normalized = colors;
-
   if (!Array.isArray(colors[0])) {
-    normalized = coerceFlatColorsToMatrix_(colors, targetRows || colors.length, targetCols || 1);
-  } else if (targetRows && targetCols) {
-    var sourceRows = colors.length;
-    var sourceCols = Array.isArray(colors[0]) ? colors[0].length : 0;
-    if (sourceRows !== targetRows || sourceCols !== targetCols) {
-      var flatColors = flattenColorMatrix_(colors);
-      normalized = coerceFlatColorsToMatrix_(flatColors, targetRows, targetCols);
-    }
+    normalized = coerceFlatColorsToMatrix_(colors, rows || colors.length, cols || 1);
   }
-
   return normalized.map(function(row) {
     return Array.isArray(row)
       ? row.map(function(cell) { return normalizeColorValue_(cell); })
       : row;
   });
-}
-
-function flattenColorMatrix_(colors) {
-  var flat = [];
-  for (var r = 0; r < colors.length; r++) {
-    var row = colors[r];
-    if (Array.isArray(row)) {
-      for (var c = 0; c < row.length; c++) flat.push(row[c]);
-    } else {
-      flat.push(row);
-    }
-  }
-  return flat;
 }
 
 function coerceFlatColorsToMatrix_(colors, rows, cols) {
