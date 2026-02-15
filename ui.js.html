@@ -108,6 +108,28 @@
     state.aiDebug = aiDebug || null;
     document.getElementById('planJson').innerHTML = formatPlanWithExplanation(plan);
     document.getElementById('summary').innerHTML = formatSummaryWithColors(summary || '');
+    renderAiDebug(aiDebug || null);
+  }
+
+
+  function renderAiDebug(aiDebug) {
+    var payloadEl = document.getElementById('aiPayload');
+    var rawEl = document.getElementById('aiRaw');
+    var payloadTimeEl = document.getElementById('aiPayloadTime');
+    var rawTimeEl = document.getElementById('aiRawTime');
+    if (!payloadEl || !rawEl || !payloadTimeEl || !rawTimeEl) return;
+    if (!aiDebug) {
+      payloadTimeEl.textContent = '';
+      rawTimeEl.textContent = '';
+      payloadEl.textContent = '';
+      rawEl.textContent = '';
+      return;
+    }
+    var stamp = aiDebug.timestamp ? ('Fecha: ' + aiDebug.timestamp) : '';
+    payloadTimeEl.textContent = stamp;
+    rawTimeEl.textContent = stamp;
+    payloadEl.textContent = aiDebug.payload || '';
+    rawEl.textContent = aiDebug.rawResponse || '';
   }
 
 
