@@ -10,7 +10,6 @@
     cancelledRequestIds: {},
     aiDebug: null
   };
-  let scanProgressTimer = null;
 
   function setStatus(message, isError) {
     const el = document.getElementById('status');
@@ -23,7 +22,7 @@
     if (isError) {
       return { icon: '⚠', iconClass: 'error wiggle' };
     }
-    if (/Procesando|Aplicando|Escaneando|Editando plan/.test(message)) {
+    if (/Procesando|Aplicando|Editando plan/.test(message)) {
       return { icon: '', iconClass: 'loading' };
     }
     if (/copiado/i.test(message)) {
@@ -44,7 +43,7 @@
       applyBtn.disabled = true;
     } else {
       analyzeBtn.textContent = 'Editar';
-      applyBtn.disabled = document.getElementById('dryRun').checked;
+      applyBtn.disabled = false;
     }
   }
 
@@ -52,7 +51,7 @@
     state.isBusy = !!isBusy;
     state.busyTask = isBusy ? (taskLabel || 'acción en curso') : '';
     var disabled = !!isBusy;
-    ['btnAnalyzeEdit', 'btnApply', 'btnScan', 'btnClearLogs', 'btnCopyPlan', 'promptInput', 'dryRun', 'safeMode', 'scanMode']
+    ['btnAnalyzeEdit', 'btnApply', 'btnClearLogs', 'btnCopyPlan', 'promptInput']
       .forEach(function(id) {
         var el = document.getElementById(id);
         if (!el) return;
@@ -63,7 +62,7 @@
         }
       });
     if (!disabled && state.mode === 'PLANNED') {
-      document.getElementById('btnApply').disabled = document.getElementById('dryRun').checked;
+      document.getElementById('btnApply').disabled = false;
     }
     updateCancelApplyVisibility();
   }
@@ -243,10 +242,7 @@
       setStatus('Prompt vacío.', true);
       return;
     }
-    const flags = {
-      dryRun: document.getElementById('dryRun').checked,
-      safeMode: document.getElementById('safeMode').checked
-    };
+    const flags = { dryRun: false, safeMode: false };
     var requestId = ++state.activeRequestId;
     setStatus(state.mode === 'IDLE' ? 'Procesando...' : 'Editando plan...', false);
     setBusy(true, state.mode === 'IDLE' ? 'Procesando' : 'Editando plan');
@@ -293,10 +289,7 @@
       setStatus('Sin plan.', true);
       return;
     }
-    const flags = {
-      dryRun: document.getElementById('dryRun').checked,
-      safeMode: document.getElementById('safeMode').checked
-    };
+    const flags = { dryRun: false, safeMode: false };
     var requestId = ++state.activeRequestId;
     state.applyingRequestId = requestId;
     setBusy(true, 'Aplicando');
@@ -330,71 +323,14 @@
     }).applyPlan(state.plan, flags);
   });
 
-  document.getElementById('dryRun').addEventListener('change', function() {
-    if (state.mode === 'PLANNED') {
-      document.getElementById('btnApply').disabled = this.checked;
-    }
-  });
 
-  document.getElementById('btnScan').addEventListener('click', function() {
-    if (!ensureNotBusy('Escanear proyecto')) return;
-    const mode = document.getElementById('scanMode').value;
-    var requestId = ++state.activeRequestId;
-    setBusy(true, 'Escaneando proyecto');
-    startScanProgress(mode);
-    google.script.run.withSuccessHandler(function(result) {
-      if (requestId !== state.activeRequestId) return;
-      setBusy(false, '');
-      stopScanProgress();
-      if (result.error) {
-        setStatus(result.error, true);
-        return;
-      }
-      setStatus(result.message, false);
-      refreshLogs();
-    }).withFailureHandler(function(err) {
-      if (requestId !== state.activeRequestId) return;
-      stopScanProgress();
-      setBusy(false, '');
-      setStatus(formatRunError_('Error al escanear', err), true);
-    }).scanProjectAndUpdateContext({ mode });
-  });
-
-  function startScanProgress(mode) {
-    stopScanProgress();
-    var steps = mode === 'full'
-      ? [
-          'Escaneando: leyendo estructura general del archivo...',
-          'Escaneando: revisando hojas, tamaños y rangos usados...',
-          'Escaneando: analizando fórmulas, formatos y validaciones...',
-          'Escaneando: consolidando contexto completo para la IA...'
-        ]
-      : [
-          'Escaneando: leyendo estructura base del archivo...',
-          'Escaneando: identificando hojas y rangos principales...',
-          'Escaneando: guardando contexto rápido para la IA...'
-        ];
-    var index = 0;
-    setStatus(steps[index], false);
-    scanProgressTimer = setInterval(function() {
-      index = (index + 1) % steps.length;
-      setStatus(steps[index], false);
-    }, 1200);
-  }
-
-  function stopScanProgress() {
-    if (scanProgressTimer) {
-      clearInterval(scanProgressTimer);
-      scanProgressTimer = null;
-    }
-  }
 
   document.getElementById('btnCopyPlan').addEventListener('click', function() {
     if (!ensureNotBusy('Copiar plan')) return;
     var statusEl = document.getElementById('status');
     var previousStatusText = statusEl.textContent || '';
     var previousIsError = (statusEl.className || '').indexOf('error') !== -1;
-    var shouldRestore = /Procesando|Aplicando|Escaneando|Editando plan/.test(previousStatusText);
+    var shouldRestore = /Procesando|Aplicando|Editando plan/.test(previousStatusText);
 
     var planText = document.getElementById('planJson').innerText || '';
     if (!planText.trim()) {

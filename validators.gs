@@ -225,6 +225,42 @@ function validatePlanReadOnly_(plan, flags) {
   return validatePlan_(cloned, flags);
 }
 
+function validatePlanStructureOnly_(plan, flags) {
+  if (!plan || typeof plan !== 'object') return 'Plan inválido.';
+  if (!plan.meta || typeof plan.meta !== 'object') return 'Plan inválido: falta meta.';
+  if (!Array.isArray(plan.actions)) return 'Plan inválido: falta actions.';
+
+  for (var i = 0; i < plan.actions.length; i++) {
+    var action = plan.actions[i];
+    if (!action || typeof action !== 'object') return 'Acción inválida en índice ' + i;
+    if (!action.op || ALLOWED_OPS.indexOf(action.op) === -1) {
+      return 'Operación no permitida: ' + action.op + ' (no está en whitelist)';
+    }
+    if (flags && flags.safeMode) {
+      var blockedOps = getSafeBlockedOps_();
+      if (blockedOps.indexOf(action.op) !== -1) {
+        return 'Operación no permitida: ' + action.op + ' (bloqueada por Safe Mode)';
+      }
+    }
+    if (requiresSheet_(action.op) && !action.sheetName) {
+      return 'Operación no permitida: falta sheetName';
+    }
+    if (requiresRange_(action.op) && !action.rangeA1) {
+      return 'Rango inválido: falta rangeA1';
+    }
+    if (action.op === 'setBackgrounds') {
+      if (!Array.isArray(action.colors)) return 'Color inválido: falta colors';
+      var sheet = SpreadsheetApp.getActive().getSheetByName(action.sheetName);
+      if (!sheet) return 'Hoja no encontrada: ' + action.sheetName;
+      var range = sheet.getRange(action.rangeA1);
+      if (!isStrictHexColorMatrix_(action.colors, range.getNumRows(), range.getNumColumns())) {
+        return 'Color inválido: colors debe ser matriz ' + range.getNumRows() + 'x' + range.getNumColumns() + ' con valores #RRGGBB';
+      }
+    }
+  }
+  return null;
+}
+
 function validateAction_(action, flags) {
   if (flags && flags.safeMode) {
     var blockedOps = getSafeBlockedOps_();
@@ -306,9 +342,11 @@ function validateAction_(action, flags) {
   if (action.op === 'setBackgrounds' && Array.isArray(action.colors) && action.rangeA1) {
     var sheetForBgMatrix = sheet || SpreadsheetApp.getActive().getActiveSheet();
     var rangeForBgMatrix = sheetForBgMatrix.getRange(action.rangeA1);
-    action.colors = normalizeColorMatrixValues_(action.colors);
-    if (!isStrictHexColorMatrix_(action.colors, rangeForBgMatrix.getNumRows(), rangeForBgMatrix.getNumColumns())) {
-      return 'Color inválido: colors debe ser matriz ' + rangeForBgMatrix.getNumRows() + 'x' + rangeForBgMatrix.getNumColumns() + ' con valores #RRGGBB';
+    var expectedRows = rangeForBgMatrix.getNumRows();
+    var expectedCols = rangeForBgMatrix.getNumColumns();
+    action.colors = normalizeColorMatrixValues_(action.colors, expectedRows, expectedCols);
+    if (!isStrictHexColorMatrix_(action.colors, expectedRows, expectedCols)) {
+      return 'Color inválido: colors debe ser matriz ' + expectedRows + 'x' + expectedCols + ' con valores #RRGGBB';
     }
   }
   if (action.op === 'setTextRotation' && action.rotation === undefined) {
@@ -684,25 +722,108 @@ function isStrictHexColorMatrix_(colors, rows, cols) {
   return true;
 }
 
-function normalizeColorMatrixValues_(colors) {
+function normalizeColorMatrixValues_(colors, rows, cols) {
   if (!Array.isArray(colors)) return colors;
+  var targetRows = Math.max(1, Number(rows) || 0);
+  var targetCols = Math.max(1, Number(cols) || 0);
+  var normalized = colors;
+
   if (!Array.isArray(colors[0])) {
-    return colors.map(function(cell) { return normalizeColorValue_(cell); });
+    normalized = coerceFlatColorsToMatrix_(colors, targetRows || colors.length, targetCols || 1);
+  } else if (targetRows && targetCols) {
+    var sourceRows = colors.length;
+    var sourceCols = Array.isArray(colors[0]) ? colors[0].length : 0;
+    if (sourceRows !== targetRows || sourceCols !== targetCols) {
+      var flatColors = flattenColorMatrix_(colors);
+      normalized = coerceFlatColorsToMatrix_(flatColors, targetRows, targetCols);
+    }
   }
-  return colors.map(function(row) {
+
+  var fallback = '#ffffff';
+  var lastValid = fallback;
+  return normalized.map(function(row) {
     return Array.isArray(row)
-      ? row.map(function(cell) { return normalizeColorValue_(cell); })
+      ? row.map(function(cell) {
+          var parsed = normalizeColorValue_(cell);
+          if (parsed) {
+            lastValid = parsed;
+            return parsed;
+          }
+          return lastValid || fallback;
+        })
       : row;
   });
+}
+
+function flattenColorMatrix_(colors) {
+  var flat = [];
+  for (var r = 0; r < colors.length; r++) {
+    var row = colors[r];
+    if (Array.isArray(row)) {
+      for (var c = 0; c < row.length; c++) flat.push(row[c]);
+    } else {
+      flat.push(row);
+    }
+  }
+  return flat;
+}
+
+function coerceFlatColorsToMatrix_(colors, rows, cols) {
+  var targetRows = Math.max(1, Number(rows) || 1);
+  var targetCols = Math.max(1, Number(cols) || 1);
+  var total = targetRows * targetCols;
+  var flat = colors.slice();
+  if (flat.length === 1 && total > 1) {
+    var fill = [];
+    for (var i = 0; i < total; i++) fill.push(flat[0]);
+    flat = fill;
+  }
+  if (targetCols === 1 && flat.length === targetRows) {
+    return flat.map(function(cell) { return [cell]; });
+  }
+  if (targetRows === 1 && flat.length === targetCols) {
+    return [flat.slice(0, targetCols)];
+  }
+  var matrix = [];
+  for (var r = 0; r < targetRows; r++) {
+    var row = [];
+    for (var c = 0; c < targetCols; c++) {
+      var idx = r * targetCols + c;
+      row.push(flat[Math.min(idx, flat.length - 1)]);
+    }
+    matrix.push(row);
+  }
+  return matrix;
 }
 
 function normalizeColorValue_(value) {
   if (typeof value === 'string') {
     var v = value.trim();
     if (/^#[0-9a-fA-F]{6}$/.test(v)) return v.toLowerCase();
-    var rgbMatch = v.match(/^rgb\s*\((\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i);
+    if (/^[0-9a-fA-F]{6}$/.test(v)) return ('#' + v).toLowerCase();
+    var shortHex = v.match(/^#?([0-9a-fA-F]{3})$/);
+    if (shortHex) {
+      var sh = shortHex[1].toLowerCase();
+      return '#' + sh[0] + sh[0] + sh[1] + sh[1] + sh[2] + sh[2];
+    }
+    var csvRgb = v.match(/^\s*([0-9]{1,3}%?)\s*[,;\s]\s*([0-9]{1,3}%?)\s*[,;\s]\s*([0-9]{1,3}%?)\s*$/);
+    if (csvRgb) {
+      return '#' + toHexColorChannel_(csvRgb[1]) + toHexColorChannel_(csvRgb[2]) + toHexColorChannel_(csvRgb[3]);
+    }
+    var rgbMatch = v.match(/^rgba?\s*\(([^)]+)\)$/i);
     if (rgbMatch) {
-      return '#' + toHexColorChannel_(rgbMatch[1]) + toHexColorChannel_(rgbMatch[2]) + toHexColorChannel_(rgbMatch[3]);
+      var parts = rgbMatch[1].split(',').map(function(part) { return part.trim(); });
+      if (parts.length >= 3) {
+        return '#' + toHexColorChannel_(parts[0]) + toHexColorChannel_(parts[1]) + toHexColorChannel_(parts[2]);
+      }
+    }
+    var hslMatch = v.match(/^hsla?\s*\(([^)]+)\)$/i);
+    if (hslMatch) {
+      var hslParts = hslMatch[1].split(',').map(function(part) { return part.trim(); });
+      if (hslParts.length >= 3) {
+        var rgb = hslToRgb_(Number(hslParts[0]), parsePercentage_(hslParts[1]), parsePercentage_(hslParts[2]));
+        return '#' + toHexColorChannel_(rgb.r) + toHexColorChannel_(rgb.g) + toHexColorChannel_(rgb.b);
+      }
     }
     var named = {
       blanco: '#ffffff', white: '#ffffff',
@@ -710,21 +831,97 @@ function normalizeColorValue_(value) {
       gris: '#808080', gray: '#808080', grey: '#808080',
       rojo: '#ff0000', red: '#ff0000',
       verde: '#00ff00', green: '#00ff00',
-      azul: '#0000ff', blue: '#0000ff'
+      azul: '#0000ff', blue: '#0000ff',
+      amarillo: '#ffff00', yellow: '#ffff00',
+      naranja: '#ffa500', orange: '#ffa500',
+      morado: '#800080', purple: '#800080'
     };
     var mapped = named[v.toLowerCase()];
     return mapped || null;
   }
-  if (value && typeof value === 'object' && value.red !== undefined && value.green !== undefined && value.blue !== undefined) {
-    return '#' + toHexColorChannel_(value.red) + toHexColorChannel_(value.green) + toHexColorChannel_(value.blue);
+  if (Array.isArray(value) && value.length >= 3) {
+    return '#' + toHexColorChannel_(value[0]) + toHexColorChannel_(value[1]) + toHexColorChannel_(value[2]);
+  }
+  if (value && typeof value === 'object') {
+    if (value.rgbColor) {
+      var rgbColor = value.rgbColor;
+      return '#' + toHexColorChannel_(rgbColor.red) + toHexColorChannel_(rgbColor.green) + toHexColorChannel_(rgbColor.blue);
+    }
+    var r = value.red;
+    var g = value.green;
+    var b = value.blue;
+    if (r === undefined && value.r !== undefined) r = value.r;
+    if (g === undefined && value.g !== undefined) g = value.g;
+    if (b === undefined && value.b !== undefined) b = value.b;
+    if (r === undefined && value.R !== undefined) r = value.R;
+    if (g === undefined && value.G !== undefined) g = value.G;
+    if (b === undefined && value.B !== undefined) b = value.B;
+    if (r !== undefined && g !== undefined && b !== undefined) {
+      return '#' + toHexColorChannel_(r) + toHexColorChannel_(g) + toHexColorChannel_(b);
+    }
   }
   return null;
 }
 
 function toHexColorChannel_(n) {
-  var num = Math.max(0, Math.min(255, Number(n)));
+  var raw = n;
+  if (typeof raw === 'string') {
+    var trimmed = raw.trim();
+    if (/^-?\d+(\.\d+)?%$/.test(trimmed)) {
+      raw = (parseFloat(trimmed) / 100) * 255;
+    } else {
+      raw = Number(trimmed);
+    }
+  }
+  var num = Number(raw);
+  if (!isFinite(num)) num = 0;
+  if (num >= 0 && num <= 1) {
+    num = num * 255;
+  }
+  num = Math.max(0, Math.min(255, num));
   var hex = Math.round(num).toString(16);
   return hex.length === 1 ? '0' + hex : hex;
+}
+
+function parsePercentage_(value) {
+  var str = String(value || '').trim();
+  if (/^-?\d+(\.\d+)?%$/.test(str)) {
+    return Math.max(0, Math.min(1, parseFloat(str) / 100));
+  }
+  var num = Number(str);
+  if (!isFinite(num)) return 0;
+  if (num > 1) return Math.max(0, Math.min(1, num / 100));
+  return Math.max(0, Math.min(1, num));
+}
+
+function hslToRgb_(h, s, l) {
+  var hue = ((Number(h) % 360) + 360) % 360;
+  var sat = Math.max(0, Math.min(1, Number(s)));
+  var lig = Math.max(0, Math.min(1, Number(l)));
+  var c = (1 - Math.abs(2 * lig - 1)) * sat;
+  var x = c * (1 - Math.abs((hue / 60) % 2 - 1));
+  var m = lig - c / 2;
+  var r1 = 0;
+  var g1 = 0;
+  var b1 = 0;
+  if (hue < 60) {
+    r1 = c; g1 = x;
+  } else if (hue < 120) {
+    r1 = x; g1 = c;
+  } else if (hue < 180) {
+    g1 = c; b1 = x;
+  } else if (hue < 240) {
+    g1 = x; b1 = c;
+  } else if (hue < 300) {
+    r1 = x; b1 = c;
+  } else {
+    r1 = c; b1 = x;
+  }
+  return {
+    r: (r1 + m) * 255,
+    g: (g1 + m) * 255,
+    b: (b1 + m) * 255
+  };
 }
 
 function normalizeBackgroundRangeFromColors_(action, sheet) {

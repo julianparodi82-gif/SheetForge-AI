@@ -1,7 +1,7 @@
 function applyPlan(plan, flags) {
   ensureSpecialSheets_();
   var start = Date.now();
-  var validationError = validatePlanReadOnly_(plan, flags);
+  var validationError = validatePlanStructureOnly_(plan, flags);
   if (validationError) {
     return { error: validationError };
   }

@@ -5,7 +5,12 @@
     <style>
       body { font-family: 'Inter', Arial, sans-serif; color: #0f2d1f; background: #f5fbf4; overflow-x: hidden; }
       .container { padding: 14px; max-width: none; width: 100%; box-sizing: border-box; }
-      h2 { color: #1b5e20; margin: 0 0 12px; font-size: 18px; }
+      h2 { color: #1b5e20; margin: 0; font-size: 18px; }
+      .app-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 12px; padding: 12px 14px; background: linear-gradient(135deg, #ffffff 0%, #edf7ed 100%); border: 1px solid #d7ead8; border-radius: 12px; box-shadow: 0 3px 10px rgba(27, 94, 32, 0.08); }
+      .app-title-wrap { display: flex; flex-direction: column; gap: 2px; }
+      .app-title { font-size: 19px; font-weight: 800; letter-spacing: 0.1px; color: #123c1f; line-height: 1.2; }
+      .app-subtitle { font-size: 11px; color: #3f6a48; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; }
+      .app-badge { font-size: 10px; font-weight: 700; color: #14532d; background: #dcfce7; border: 1px solid #86efac; border-radius: 999px; padding: 4px 8px; white-space: nowrap; }
       textarea { width: calc(100% - 18px); min-height: 120px; padding: 10px; border: 1px solid #a5d6a7; border-radius: 10px; background: #fff; box-sizing: content-box; }
       .prompt-input { width: calc(100% - 18px); margin: 0; display: block; }
       button { padding: 10px 16px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; }
@@ -74,27 +79,17 @@
   </head>
   <body>
     <div class="container">
-      <h2>SheetForge AI — Operador IA</h2>
+      <div class="app-header">
+        <div class="app-title-wrap">
+          <h2 class="app-title">SheetForge AI</h2>
+          <div class="app-subtitle">Operador IA</div>
+        </div>
+        <span class="app-badge">Professional</span>
+      </div>
       <textarea id="promptInput" class="prompt-input" placeholder="Escribe instrucciones o comandos..."></textarea>
       <div class="row buttons">
         <button id="btnAnalyzeEdit" class="primary">Analizar</button>
         <button id="btnApply" class="secondary" disabled>Aplicar</button>
-      </div>
-      <div class="row field-group">
-        <label class="tooltip" data-tooltip="Cuando está activado, solo genera el plan sin aplicar cambios. Cuando está desactivado, permite aplicar.">
-          <input type="checkbox" id="dryRun"> Simulación (Dry Run)
-        </label>
-        <label class="tooltip" data-tooltip="Cuando está activado, bloquea operaciones riesgosas o masivas. Cuando está desactivado, permite acciones avanzadas.">
-          <input type="checkbox" id="safeMode"> Modo seguro
-        </label>
-        <label class="tooltip" data-tooltip="Rápido: analiza estructura y rangos principales con un muestreo liviano. Completo: revisa más detalle, valores y formatos para dar un contexto más preciso.">
-          Modo de escaneo
-          <select id="scanMode">
-            <option value="quick">Rápido</option>
-            <option value="full">Completo</option>
-          </select>
-        </label>
-        <button id="btnScan" class="secondary">Escanear proyecto</button>
       </div>
       <div class="panel tooltip tooltip-top" data-tooltip="Estado actual de la solicitud y mensajes de proceso.">
         <div style="font-weight:600;color:#1b5e20;">Estado</div>
