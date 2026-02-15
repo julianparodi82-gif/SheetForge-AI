@@ -96,9 +96,14 @@ function buildAiPayload_(prompt, flags, currentPlan) {
     'Devuelve exactamente: {"plan":{"meta":{"version":"1.0","dryRun":false,"safeMode":false,"notes":""},"actions":[...]},"summary":"..."}.',
     'El plan debe quedar completo y listo para ejecutar.',
     'Si falta un dato, completa con la opción más probable y deja la decisión en plan.meta.notes.',
-    'No agregues código ni explicaciones fuera del JSON.'
+    'No agregues código ni explicaciones fuera del JSON.',
+    'Usa únicamente operaciones incluidas en la whitelist permitida enviada junto al mensaje del usuario.'
   ].join('\n');
-  var user = String(prompt || '');
+  var userPayload = {
+    userMessage: String(prompt || ''),
+    allowedOpsWhitelist: (typeof ALLOWED_OPS !== 'undefined' && Array.isArray(ALLOWED_OPS)) ? ALLOWED_OPS : []
+  };
+  var user = JSON.stringify(userPayload);
   return {
     model: 'gpt-4o-mini',
     temperature: 0.2,
