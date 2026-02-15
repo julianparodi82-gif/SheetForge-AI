@@ -62,15 +62,21 @@ function executeAction_(action) {
     return;
   }
   if (action.op === 'setBackground') {
-    ss.getSheetByName(action.sheetName).getRange(action.rangeA1).setBackground(action.color);
+    var bgSheet = resolveSheetForAction_(ss, action);
+    var bgRangeA1 = resolveRangeA1ForAction_(ss, action);
+    bgSheet.getRange(bgRangeA1).setBackground(action.color);
     return;
   }
   if (action.op === 'setBackgroundColor') {
-    ss.getSheetByName(action.sheetName).getRange(action.rangeA1).setBackground(action.color);
+    var bgColorSheet = resolveSheetForAction_(ss, action);
+    var bgColorRangeA1 = resolveRangeA1ForAction_(ss, action);
+    bgColorSheet.getRange(bgColorRangeA1).setBackground(action.color);
     return;
   }
   if (action.op === 'setBackgrounds') {
-    ss.getSheetByName(action.sheetName).getRange(action.rangeA1).setBackgrounds(action.colors);
+    var bgsSheet = resolveSheetForAction_(ss, action);
+    var bgsRangeA1 = resolveRangeA1ForAction_(ss, action);
+    bgsSheet.getRange(bgsRangeA1).setBackgrounds(action.colors);
     return;
   }
   if (action.op === 'setFontColor') {
@@ -289,4 +295,18 @@ function executeAction_(action) {
   if (action.op === 'setImageFormula') {
     ss.getSheetByName(action.sheetName).getRange(action.rangeA1).setFormula(action.formula);
   }
+}
+
+function resolveSheetForAction_(ss, action) {
+  var named = action && action.sheetName ? ss.getSheetByName(action.sheetName) : null;
+  return named || ss.getActiveSheet();
+}
+
+function resolveRangeA1ForAction_(ss, action) {
+  if (!action) return ss.getActiveRange().getA1Notation();
+  if (action.rangeA1) return action.rangeA1;
+  if (typeof action.range === 'string') return action.range;
+  if (action.cell) return action.cell;
+  var active = ss.getActiveRange();
+  return active ? active.getA1Notation() : 'A1';
 }
