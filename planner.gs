@@ -117,7 +117,7 @@ function buildAiPayload_(prompt, flags, currentPlan, context) {
     'No incluyas texto fuera del JSON.',
     'Usa SOLO campos canónicos para ubicación y color: sheetName, rangeA1, color, colors.',
     'No uses campos alternativos o duplicados: range, backgrounds, bgColor, backgroundColor, cell (salvo que el op lo requiera).',
-    'Convierte cualquier formato de color de entrada (nombre, rgb, rgba, hsl, objetos RGB) al formato canónico de Google Sheets: HEX #RRGGBB.',
+    'Colores siempre en HEX #RRGGBB.',
     'Para setBackgrounds incluye colors como matriz 2D del tamaño exacto del rango.',
     'No inventes paletas si el usuario no las pide.',
     'Si falta un dato crítico, decide la opción más lógica y escríbela en plan.meta.notes.',
@@ -199,8 +199,7 @@ function validateSemanticRulesFromPrompt_(plan, prompt) {
 }
 
 function parseHexColor_(value) {
-  var normalized = typeof normalizeColorValue_ === 'function' ? normalizeColorValue_(value) : String(value || '').trim();
-  var hex = String(normalized || '').trim();
+  var hex = String(value || '').trim();
   var match = hex.match(/^#([0-9a-fA-F]{6})$/);
   if (!match) return null;
   return {
