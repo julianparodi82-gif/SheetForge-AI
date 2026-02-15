@@ -12,7 +12,6 @@ function buildPlan(prompt, flags) {
   if (aiResult.error) return aiResult;
   return aiResult;
 }
-
 function editPlan(editPrompt, currentPlan, flags) {
   ensureSpecialSheets_();
   var trimmed = (editPrompt || '').trim();
@@ -27,7 +26,6 @@ function editPlan(editPrompt, currentPlan, flags) {
   if (aiResult.error) return aiResult;
   return aiResult;
 }
-
 function buildPlanWithAi_(prompt, flags, currentPlan) {
   var props = PropertiesService.getDocumentProperties();
   var userProps = PropertiesService.getUserProperties();
@@ -55,7 +53,6 @@ function buildPlanWithAi_(prompt, flags, currentPlan) {
     }
   };
 }
-
 function commandToPlan_(prompt, flags) {
   var meta = {
     version: '1.0',
@@ -67,7 +64,6 @@ function commandToPlan_(prompt, flags) {
   if (action.error) return action;
   return { meta: meta, actions: [action] };
 }
-
 function editPlanWithCommand_(prompt, plan) {
   var parts = prompt.split(' ');
   var cmd = parts[0];
@@ -92,24 +88,15 @@ function editPlanWithCommand_(prompt, plan) {
   }
   return { error: 'Comando de edición no soportado.' };
 }
-
 function buildAiPayload_(prompt, flags, currentPlan) {
-  var maxExplicitColorsCells = 2000;
   var system = [
     'Eres un generador de planes JSON para Google Sheets.',
-    'Responde SOLO JSON válido con este esquema:',
-    '{"plan":{"meta":{"version":"1.0","dryRun":false,"safeMode":true,"notes":""},"actions":[{"op":"...","sheetName":"...","rangeA1":"..."}]},"summary":{"objetivo":"...","acciones":["..."],"ubicacion":"Hoja!Rango","impacto":"..."}}',
-    'No incluyas texto fuera del JSON.',
-    'Usa SOLO campos canónicos para ubicación y color: sheetName, rangeA1, color, colors.',
-    'No uses campos alternativos o duplicados: range, backgrounds, bgColor, backgroundColor, cell (salvo que el op lo requiera).',
-    'Convierte cualquier formato de color de entrada (nombre, rgb, rgba, hsl, objetos RGB) al formato canónico de Google Sheets: HEX #RRGGBB.',
-    'Para setBackgrounds incluye colors como matriz 2D del tamaño exacto del rango.',
-    'Devuelve Plan JSON y Resumen profesional completos y listos para ejecutar, sin depender de post-procesamiento.',
-    'No inventes paletas si el usuario no las pide.',
-    'Si falta un dato crítico, completa con el valor más probable y escríbelo en plan.meta.notes.',
-    'No uses contexto externo: utiliza únicamente el mensaje crudo del usuario para construir el plan.',
-    'Si una progresión RGB está especificada, respétala de forma determinística (canales, base, paso y clamp).',
-    'Para rangos con más de ' + maxExplicitColorsCells + ' celdas evita matrices explícitas gigantes y usa una acción compacta cuando sea viable.'
+    'Recibirás únicamente el mensaje crudo del usuario.',
+    'Responde SOLO JSON válido y sin texto extra.',
+    'Devuelve exactamente: {"plan":{"meta":{"version":"1.0","dryRun":false,"safeMode":false,"notes":""},"actions":[...]},"summary":"..."}.',
+    'El plan debe quedar completo y listo para ejecutar.',
+    'Si falta un dato, completa con la opción más probable y deja la decisión en plan.meta.notes.',
+    'No agregues código ni explicaciones fuera del JSON.'
   ].join('\n');
   var user = String(prompt || '');
   return {
@@ -121,7 +108,6 @@ function buildAiPayload_(prompt, flags, currentPlan) {
     ]
   };
 }
-
 function callAiEndpoint_(endpoint, apiKey, payload) {
   var url = endpoint || 'https://api.openai.com/v1/chat/completions';
   try {
@@ -142,7 +128,6 @@ function callAiEndpoint_(endpoint, apiKey, payload) {
     return { error: 'Error IA: ' + e.message };
   }
 }
-
 function parseAiPlanResponse_(response) {
   var raw = response.text;
   var data;
@@ -158,20 +143,15 @@ function parseAiPlanResponse_(response) {
     return { plan: data.plan, summary: data.summary };
   }
   if (!content) return { error: 'Respuesta IA vacía.' };
-  var jsonStart = content.indexOf('{');
-  var jsonEnd = content.lastIndexOf('}');
-  if (jsonStart === -1 || jsonEnd === -1) return { error: 'Respuesta IA inválida.' };
-  var jsonText = content.substring(jsonStart, jsonEnd + 1);
   var parsed;
   try {
-    parsed = JSON.parse(jsonText);
+    parsed = JSON.parse(content);
   } catch (e) {
-    return { error: 'La IA devolvió un plan con JSON inválido. Reformula el pedido o vuelve a intentar.' };
+    return { error: 'La IA devolvió contenido no-JSON. Debe devolver solo JSON válido.' };
   }
   if (!parsed.plan || !parsed.plan.actions) return { error: 'Plan IA inválido.' };
   return { plan: parsed.plan, summary: parsed.summary };
 }
-
 function parseCommand_(prompt) {
   var cmd = prompt.split(' ')[0];
   if (cmd === '/color') {
@@ -216,13 +196,11 @@ function parseCommand_(prompt) {
   }
   return { error: 'Comando no reconocido.' };
 }
-
 function extractIndex_(prompt) {
   var match = prompt.match(/index=(\d+)/);
   if (!match) return -1;
   return parseInt(match[1], 10);
 }
-
 function extractJson_(prompt) {
   var match = prompt.match(/\{[\s\S]+\}/);
   if (!match) return null;
@@ -232,7 +210,6 @@ function extractJson_(prompt) {
     return null;
   }
 }
-
 function buildSummary_(plan) {
   var lines = [];
   lines.push('Objetivo: aplicar los cambios solicitados en la hoja respetando prioridad de instrucciones del usuario.');
@@ -249,7 +226,6 @@ function buildSummary_(plan) {
   lines.push(plan.actions.map(function (a) { return describeImpact_(a); }).join(' | '));
   return lines.join('\n');
 }
-
 function describeAction_(action) {
   var op = friendlyOp_(action.op || 'acción');
   var target = action.rangeA1 || action.targetA1 || action.sourceA1 || action.cell || 'sin rango';
@@ -259,7 +235,6 @@ function describeAction_(action) {
   }
   return op + ' en ' + (action.sheetName || 'hoja activa') + ' (' + target + ')' + color + '.';
 }
-
 function describeImpact_(action) {
   if (action.op === 'setBackground' || action.op === 'setBackgrounds') {
     return 'Se verá un cambio visual de color en ' + (action.rangeA1 || action.targetA1 || action.cell || 'el rango elegido');
@@ -272,7 +247,6 @@ function describeImpact_(action) {
   }
   return 'Se aplicará un cambio en ' + (action.sheetName || 'la hoja activa');
 }
-
 function friendlyOp_(op) {
   var map = {
     setBackground: 'Pintar celdas',
@@ -288,7 +262,6 @@ function friendlyOp_(op) {
   };
   return map[op] || ('Aplicar ' + op);
 }
-
 function formatColorLabel_(hex) {
   var normalized = String(hex || '').toLowerCase();
   var names = {
